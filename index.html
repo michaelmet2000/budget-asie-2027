@@ -245,14 +245,17 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   let syncing = false, lastError = '', openEntry = null, confirmId = null;
 
   // Lien d'installation partagé : #api=…
-  (function readHash() {
+  function readHash() {
     const h = location.hash.slice(1);
-    if (!h.startsWith('api=')) return;
+    if (!h.startsWith('api=')) return false;
     const api = decodeURIComponent(h.slice(4));
     history.replaceState(null, '', location.pathname + location.search);
     if (/^https:\/\/script\.google(usercontent)?\.com\//.test(api)) cfg = Object.assign({}, cfg || {}, { api });
     if (cfg) save(K.cfg, cfg);
-  })();
+    return true;
+  }
+  readHash();
+  window.addEventListener('hashchange', () => { if (readHash()) { render(); sync(); } });
 
   // ── Calculs ──
   function taux() { return Object.assign({ CHF: 1 }, snap && snap.taux); }
