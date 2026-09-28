@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Budget Asie 2027</title>
+<meta name="theme-color" content="#0D0D1F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budget Asie">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0D0D1F; --s1: #14142A; --s2: #1C1C38; --s3: #25254A; --bd: #2A2A4A;
+  --tx: #EDEDF7; --dim: #9A9ABF; --mute: #6B6B8F;
+  --ac: #E8C97A; --ac2: #F3DDA4; --ok: #2ECC71; --bad: #FF6B5E; --warn: #F5A623;
+  --th: #F5A623; --vn: #2ECC71; --jp: #FF3D7F; --kr: #3D9EFF; --cn: #FF4A2A; --gen: #9A9ABF;
+  --r: 16px;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--tx); font-family: var(--sans); font-size: 15px; line-height: 1.45; }
+body { padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px calc(env(safe-area-inset-bottom, 0px) + 110px); max-width: 640px; margin: 0 auto; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+
+/* Barre du haut */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0 14px; }
+.brand { font-family: var(--serif); font-size: 22px; font-weight: 700; letter-spacing: .2px; }
+.brand em { color: var(--ac); }
+.top-actions { display: flex; gap: 8px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--bd); background: var(--s1); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; color: var(--dim); white-space: nowrap; }
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--mute); flex: none; }
+.pill.ok i { background: var(--ok); }
+.pill.busy i { background: var(--ac); animation: pulse 1s infinite; }
+.pill.wait { color: var(--warn); border-color: rgba(245,166,35,.45); }
+.pill.wait i { background: var(--warn); }
+.pill.err { color: var(--bad); border-color: rgba(255,107,94,.45); }
+.pill.err i { background: var(--bad); }
+@keyframes pulse { 50% { opacity: .3; } }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--bd); background: var(--s1); display: grid; place-items: center; color: var(--dim); }
+
+/* Bandeaux */
+.banner { background: var(--s1); border: 1px solid var(--bd); border-radius: 12px; padding: 10px 14px; font-size: 13px; color: var(--dim); margin-bottom: 14px; }
+.banner b { color: var(--tx); }
+.banner.warn { border-color: rgba(245,166,35,.45); }
+
+/* Pays */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin: 0 -16px 14px; padding-inline: 16px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--bd); background: var(--s1); border-radius: 999px; padding: 7px 13px; font-size: 13.5px; color: var(--dim); display: inline-flex; align-items: center; gap: 7px; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--gen)); }
+.chip[aria-pressed="true"] { background: var(--s3); color: var(--tx); border-color: var(--c, var(--ac)); }
+
+/* Carte principale */
+.hero { background: linear-gradient(160deg, var(--s2), var(--s1)); border: 1px solid var(--bd); border-radius: var(--r); padding: 18px; position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--c, var(--ac)); }
+.hero .kicker { font-size: 11.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+.hero h1 { font-family: var(--serif); font-size: 28px; margin: 2px 0 12px; line-height: 1.15; }
+.big { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.big .v { font-family: var(--serif); font-size: 34px; font-weight: 700; }
+.big .of { color: var(--dim); font-size: 14px; }
+.bar { height: 8px; border-radius: 99px; background: var(--s3); overflow: hidden; margin: 12px 0 10px; }
+.bar > span { display: block; height: 100%; border-radius: 99px; background: var(--c, var(--ac)); transition: width .4s; }
+.bar.over > span { background: var(--bad); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.stat { background: rgba(255,255,255,.03); border: 1px solid var(--bd); border-radius: 12px; padding: 9px 10px; min-width: 0; }
+.stat .l { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .6px; }
+.stat .v { font-weight: 700; font-size: 16px; margin-top: 2px; }
+.stat .v.bad { color: var(--bad); }
+.stat .v.good { color: var(--ok); }
+
+/* Sections */
+h2 { font-family: var(--serif); font-style: italic; font-size: 20px; margin: 26px 0 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+h2 small { font-family: var(--sans); font-style: normal; font-size: 12.5px; color: var(--dim); font-weight: 500; }
+.card { background: var(--s1); border: 1px solid var(--bd); border-radius: var(--r); overflow: hidden; }
+.row { display: grid; grid-template-columns: 28px 1fr auto; gap: 4px 10px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--bd); }
+.row:first-child { border-top: 0; }
+.row .ico { font-size: 19px; text-align: center; }
+.row .name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .sub { grid-column: 2 / 4; font-size: 12.5px; color: var(--dim); display: flex; justify-content: space-between; gap: 10px; }
+.row .amt { text-align: right; font-weight: 600; white-space: nowrap; }
+.row .amt small { color: var(--dim); font-weight: 500; }
+.row .bar { grid-column: 2 / 4; margin: 2px 0 0; height: 5px; }
+.bad { color: var(--bad); }
+.good { color: var(--ok); }
+
+/* Hôtels */
+.hotel { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 12px 14px; border-top: 1px solid var(--bd); align-items: center; }
+.hotel:first-child { border-top: 0; }
+.hotel .name { font-weight: 600; }
+.hotel .meta { font-size: 12.5px; color: var(--dim); }
+.hotel .right { text-align: right; }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 600; border-radius: 99px; padding: 2px 9px; border: 1px solid var(--bd); color: var(--dim); }
+.tag.over { color: var(--bad); border-color: rgba(255,107,94,.5); background: rgba(255,107,94,.08); }
+.tag.under { color: var(--ok); border-color: rgba(46,204,113,.45); background: rgba(46,204,113,.08); }
+.tag.now { color: var(--ac); border-color: rgba(232,201,122,.5); }
+
+/* Journal */
+.entry { display: grid; grid-template-columns: 28px 1fr auto; gap: 2px 10px; padding: 11px 14px; border-top: 1px solid var(--bd); width: 100%; text-align: left; background: none; border-left: 0; border-right: 0; border-bottom: 0; }
+.entry:first-child { border-top: 0; }
+.entry .ico { font-size: 18px; text-align: center; }
+.entry .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entry .meta { grid-column: 2 / 3; font-size: 12px; color: var(--dim); }
+.entry .amt { text-align: right; font-weight: 600; }
+.entry .loc { grid-column: 3; text-align: right; font-size: 12px; color: var(--dim); }
+.entry.pending .meta::after { content: ' · ⏳ pas encore envoyée'; color: var(--warn); }
+.entry-actions { display: flex; gap: 8px; padding: 0 14px 12px 52px; }
+.btn { border: 1px solid var(--bd); background: var(--s2); border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: 14px; }
+.btn.danger { color: var(--bad); border-color: rgba(255,107,94,.45); }
+.btn.primary { background: var(--ac); color: #1A1406; border-color: var(--ac); }
+.btn.wide { width: 100%; padding: 14px; font-size: 16px; }
+.empty { padding: 18px 14px; color: var(--dim); font-size: 13.5px; text-align: center; }
+.more { width: 100%; background: none; border: 0; border-top: 1px solid var(--bd); color: var(--ac); padding: 12px; font-weight: 600; }
+
+/* Bouton + dépense */
+.fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 20; background: var(--ac); color: #1A1406; border: 0; border-radius: 999px; padding: 16px 28px; font-weight: 700; font-size: 17px; box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 0 6px rgba(13,13,31,.8); display: flex; align-items: center; gap: 8px; }
+.fab span { font-size: 24px; line-height: 0; margin-top: -2px; }
+
+/* Feuille d'ajout */
+.sheet-bg { position: fixed; inset: 0; background: rgba(5,5,15,.7); z-index: 30; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; background: var(--s1); border-top: 1px solid var(--bd); border-radius: 22px 22px 0 0; max-height: 92vh; overflow-y: auto; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); max-width: 640px; margin: 0 auto; }
+.grab { width: 40px; height: 5px; border-radius: 9px; background: var(--bd); margin: 0 auto 10px; }
+.sheet h3 { font-family: var(--serif); font-size: 22px; margin: 0 0 12px; display: flex; justify-content: space-between; align-items: center; }
+.amount { display: flex; gap: 8px; align-items: stretch; }
+.amount input { flex: 1; min-width: 0; font-size: 34px; font-weight: 700; font-family: var(--serif); background: var(--bg); border: 1px solid var(--bd); border-radius: 14px; padding: 8px 14px; }
+.amount select { width: 96px; font-size: 17px; font-weight: 600; }
+.conv { color: var(--dim); font-size: 13px; margin: 6px 2px 14px; min-height: 18px; }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field > span { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .6px; font-weight: 600; }
+select, input[type=text], input[type=date], input[type=url] { width: 100%; background: var(--bg); border: 1px solid var(--bd); border-radius: 12px; padding: 12px; font-size: 16px; }
+input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
+.cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cat { border: 1px solid var(--bd); background: var(--bg); border-radius: 12px; padding: 8px 4px; display: grid; justify-items: center; gap: 2px; font-size: 11.5px; color: var(--dim); }
+.cat b { font-size: 21px; font-weight: 400; }
+.cat[aria-pressed="true"] { border-color: var(--ac); color: var(--tx); background: var(--s3); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.err-msg { color: var(--bad); font-size: 13px; min-height: 18px; margin: -6px 0 10px; }
+
+/* Réglages / accueil */
+.setup { background: var(--s1); border: 1px solid var(--bd); border-radius: var(--r); padding: 18px; }
+.setup h1 { font-family: var(--serif); font-size: 26px; margin: 0 0 6px; }
+.setup p { color: var(--dim); font-size: 14px; margin: 0 0 16px; }
+.foot { margin-top: 26px; color: var(--mute); font-size: 12px; text-align: center; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 40; background: var(--s3); border: 1px solid var(--bd); border-radius: 12px; padding: 10px 16px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.4); max-width: calc(100vw - 32px); }
+@media (max-width: 400px) { .stats { gap: 6px; } .stat { padding: 8px; } .stat .v { font-size: 14.5px; } }
+@media (max-width: 330px) { .stats { grid-template-columns: 1fr 1fr; } .cats { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">Budget <em>Asie</em> 2027</div>
+  <div class="top-actions">
+    <button class="pill" id="sync" type="button" aria-live="polite"><i></i><span>…</span></button>
+    <button class="icon-btn" id="open-settings" type="button" aria-label="Réglages">⚙︎</button>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<button class="fab" id="fab" type="button" hidden><span>+</span> Dépense</button>
+
+<div class="sheet-bg" id="sheet-bg" hidden></div>
+<form class="sheet" id="sheet" hidden autocomplete="off" novalidate>
+  <div class="grab"></div>
+  <h3>Nouvelle dépense <button type="button" class="icon-btn" id="close-sheet" aria-label="Fermer">✕</button></h3>
+  <div class="amount">
+    <input id="f-montant" inputmode="decimal" placeholder="0" aria-label="Montant" enterkeyhint="done">
+    <select id="f-devise" aria-label="Devise"></select>
+  </div>
+  <div class="conv num" id="f-conv"></div>
+  <div class="field"><span>Catégorie</span><div class="cats" id="f-cats"></div></div>
+  <div class="two">
+    <label class="field"><span>Pays</span><select id="f-pays"></select></label>
+    <label class="field"><span>Date</span><input type="date" id="f-date"></label>
+  </div>
+  <label class="field" id="f-etape-wrap"><span>Hôtel · étape</span><select id="f-etape"></select></label>
+  <label class="field"><span>Libellé (facultatif)</span><input type="text" id="f-libelle" maxlength="120" placeholder="ex. ramen à Shinjuku"></label>
+  <label class="field"><span>Payé par</span><select id="f-qui"></select></label>
+  <div class="err-msg" id="f-err" role="alert"></div>
+  <button class="btn primary wide" type="submit">Enregistrer</button>
+</form>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(() => {
+  'use strict';
+  // ── Référentiel du voyage ──
+  const PAYS = [
+    { nom: 'Thaïlande', c: 'var(--th)', dev: 'THB', debut: '2027-02-17', fin: '2027-03-08' },
+    { nom: 'Vietnam', c: 'var(--vn)', dev: 'VND', debut: '2027-03-09', fin: '2027-03-28' },
+    { nom: 'Japon', c: 'var(--jp)', dev: 'JPY', debut: '2027-03-29', fin: '2027-04-26' },
+    { nom: 'Corée', c: 'var(--kr)', dev: 'KRW', debut: '2027-04-27', fin: '2027-05-05' },
+    { nom: 'Chine + HK', c: 'var(--cn)', dev: 'CNY', debut: '2027-05-06', fin: '2027-05-26' },
+    { nom: 'Général', c: 'var(--gen)', dev: 'CHF', debut: null, fin: null },
+  ];
+  const CATS = [
+    { k: '🏨 Hôtels', ico: '🏨', court: 'Hôtel', ex: 'ex. 4 nuits réservées sur Booking' },
+    { k: '🚆 Transports', ico: '🚆', court: 'Transport', ex: 'ex. Shinkansen Kyoto → Himeji' },
+    { k: '🍜 Repas & sorties', ico: '🍜', court: 'Repas', ex: 'ex. ramen à Shinjuku' },
+    { k: '🎟️ Activités', ico: '🎟️', court: 'Activité', ex: 'ex. entrée Fushimi Inari' },
+    { k: '🛍️ Shopping', ico: '🛍️', court: 'Shopping', ex: 'ex. souvenirs, vêtements' },
+    { k: '📦 Divers', ico: '📦', court: 'Divers', ex: 'ex. SIM, lessive, taxe, visa' },
+    { k: '🛟 Réserve imprévus', ico: '🛟', court: 'Imprévu', ex: 'ex. médecin, vol raté' },
+  ];
+  const HOTEL = CATS[0].k;
+  const DEVISES = ['CHF', 'THB', 'VND', 'JPY', 'KRW', 'CNY', 'HKD', 'USD', 'EUR'];
+  const K = { cfg: 'ba27-config', snap: 'ba27-snapshot', queue: 'ba27-queue', ui: 'ba27-ui' };
+
+  // ── Outils ──
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nf0 = new Intl.NumberFormat('fr-CH', { maximumFractionDigits: 0 });
+  const nf2 = new Intl.NumberFormat('fr-CH', { maximumFractionDigits: 2 });
+  const chf = (n) => nf0.format(Math.round(n || 0)) + ' CHF';
+  const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+  const pad = (n) => String(n).padStart(2, '0');
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const addDays = (iso, n) => { const [y, m, d] = iso.split('-').map(Number); const t = new Date(y, m - 1, d + n); return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}`; };
+  const dayDiff = (a, b) => { const p = (s) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); }; return Math.round((p(b) - p(a)) / 864e5); };
+  const dateTxt = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' }); };
+  const parseNum = (v) => { const s = String(v || '').replace(/[\s']/g, '').replace(',', '.'); if (!s) return NaN; return Number(s); };
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12));
+  const paysMeta = (nom) => PAYS.find((p) => p.nom === nom) || PAYS[PAYS.length - 1];
+  const catMeta = (k) => CATS.find((c) => c.k === k) || { k, ico: '•', court: k };
+
+  // ── État ──
+  let cfg = load(K.cfg, null);            // { api, qui }
+  let snap = load(K.snap, null);          // { lignes, taux, journal, maj }
+  let queue = load(K.queue, []);          // [{ type:'add', entry } | { type:'cancel', id }]
+  const ui = Object.assign({ pays: null, showAll: false }, load(K.ui, {}));
+  let syncing = false, lastError = '', openEntry = null, confirmId = null;
+
+  // Lien d'installation partagé : #api=…
+  (function readHash() {
+    const h = location.hash.slice(1);
+    if (!h.startsWith('api=')) return;
+    const api = decodeURIComponent(h.slice(4));
+    history.replaceState(null, '', location.pathname + location.search);
+    if (/^https:\/\/script\.google(usercontent)?\.com\//.test(api)) cfg = Object.assign({}, cfg || {}, { api });
+    if (cfg) save(K.cfg, cfg);
+  })();
+
+  // ── Calculs ──
+  function taux() { return Object.assign({ CHF: 1 }, snap && snap.taux); }
+  function toChf(montant, dev) { const t = taux()[dev]; return t > 0 ? montant / t : 0; }
+
+  /** Journal visible = serveur + saisies en attente, moins les annulations. */
+  function journal() {
+    const cancelled = new Set(queue.filter((o) => o.type === 'cancel').map((o) => o.id));
+    const server = (snap ? snap.journal : []).filter((e) => e.statut !== 'annulé' && !cancelled.has(e.id))
+      .map((e) => Object.assign({}, e, { chf: e.chf != null ? e.chf : toChf(e.montant, e.devise) }));
+    const known = new Set(server.map((e) => e.id));
+    const pending = queue.filter((o) => o.type === 'add' && !known.has(o.entry.id) && !cancelled.has(o.entry.id))
+      .map((o) => Object.assign({}, o.entry, { chf: toChf(o.entry.montant, o.entry.devise), pending: true }));
+    return server.concat(pending).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.saisi || '').localeCompare(a.saisi || ''));
+  }
+
+  function model() {
+    const lignes = snap ? snap.lignes : [];
+    const jr = journal();
+    const key = (pays, cat, etape) => cat === HOTEL ? `${pays}|${cat}|${etape}` : `${pays}|${cat}`;
+    const paid = new Map();
+    for (const e of jr) { const k = key(e.pays, e.cat, e.etape); paid.set(k, (paid.get(k) || 0) + e.chf); }
+    const used = new Set();
+    const rows = lignes.map((l) => {
+      const k = key(l.pays, l.cat, l.etape);
+      used.add(k);
+      const p = paid.get(k) || 0;
+      const prevu = l.statut === 'Option (non comptée)' ? 0 : (l.prevu || 0);
+      const estim = !p ? prevu : l.cat === HOTEL ? p : Math.max(prevu, p);
+      return Object.assign({}, l, { prevu, paye: p, estim });
+    });
+    // Paiements sans ligne de budget (ex. un imprévu au Japon) : comptés quand même
+    for (const [k, v] of paid) {
+      if (used.has(k)) continue;
+      const [pays, cat, etape] = k.split('|');
+      rows.push({ pays, cat, etape: etape || '', poste: catMeta(cat).court + ' (hors budget)', prevu: 0, paye: v, estim: v, qte: 0, horsBudget: true });
+    }
+    return { rows, jr };
+  }
+
+  function currentPays() {
+    const t = today();
+    const p = PAYS.find((x) => x.debut && t >= x.debut && t <= x.fin);
+    if (p) return p.nom;
+    return t < PAYS[0].debut ? 'Général' : 'Tout';
+  }
+
+  function currentHotelEtape(pays) {
+    const t = today();
+    const hs = (snap ? snap.lignes : []).filter((l) => l.pays === pays && l.cat === HOTEL && l.date);
+    const h = hs.find((l) => t >= l.date && t < addDays(l.date, l.qte || 1));
+    return h ? h.etape : '';
+  }
+
+  // ── Rendu ──
+  function render() {
+    renderSync();
+    const app = $('#app');
+    if (!cfg || !cfg.api || !cfg.qui) { $('#fab').hidden = true; app.innerHTML = setupHtml(); bindSetup(); return; }
+    $('#fab').hidden = !snap;
+    if (!snap) {
+      app.innerHTML = `<div class="setup"><h1>Première synchro…</h1><p>Il faut du réseau une première fois pour charger le budget depuis le Google Sheet. Ensuite, l’appli marche aussi sans connexion.</p>${lastError ? `<p class="bad">${esc(lastError)}</p><button class="btn" type="button" data-act="sync">Réessayer</button>` : ''}</div>`;
+      return;
+    }
+    const m = model();
+    const sel = ui.pays || currentPays();
+    const scope = sel === 'Tout' ? m.rows : m.rows.filter((r) => r.pays === sel);
+    const meta = sel === 'Tout' ? { c: 'var(--ac)' } : paysMeta(sel);
+    const prevu = scope.reduce((s, r) => s + r.prevu, 0);
+    const paye = scope.reduce((s, r) => s + r.paye, 0);
+    const estim = scope.reduce((s, r) => s + r.estim, 0);
+    const pct = prevu ? Math.min(100, paye / prevu * 100) : 0;
+
+    let h = '';
+    if (isIos() && !isStandalone()) h += `<div class="banner warn">📲 <b>Installe l’appli</b> : bouton Partager de Safari → « Sur l’écran d’accueil ». Ouvre-la ensuite toujours depuis l’icône.</div>`;
+
+    h += `<nav class="chips" aria-label="Pays">${['Tout', ...PAYS.map((p) => p.nom)].map((n) => {
+      const c = n === 'Tout' ? 'var(--ac)' : paysMeta(n).c;
+      return `<button class="chip" type="button" data-pays="${esc(n)}" aria-pressed="${n === sel}" style="--c:${c}"><span class="dot"></span>${esc(n === 'Tout' ? 'Tout le voyage' : n)}</button>`;
+    }).join('')}</nav>`;
+
+    // Carte principale
+    let kicker = sel === 'Tout' ? '2 personnes · 98 nuits' : sel === 'Général' ? 'Vols · avant départ · réserve' : `${dateTxt(meta.debut)} → ${dateTxt(meta.fin)}`;
+    let resteJour = '';
+    const t = today();
+    if (meta.debut && t >= meta.debut && t <= meta.fin) {
+      const jours = dayDiff(t, meta.fin) + 1;
+      const done = dayDiff(meta.debut, t) + 1;
+      kicker = `Jour ${done} sur ${dayDiff(meta.debut, meta.fin) + 1} · ${sel}`;
+      const resteHorsHotel = scope.filter((r) => r.cat !== HOTEL).reduce((s, r) => s + Math.max(0, r.prevu - r.paye), 0);
+      resteJour = `<div class="stat"><div class="l">Reste / jour</div><div class="v num">${chf(resteHorsHotel / jours)}</div></div>`;
+    }
+    const ecart = estim - prevu;
+    h += `<section class="hero" style="--c:${meta.c}">
+      <div class="kicker">${esc(kicker)}</div>
+      <h1>${esc(sel === 'Tout' ? 'Tout le voyage' : sel)}</h1>
+      <div class="big"><span class="v num">${chf(paye)}</span><span class="of num">payés sur ${chf(prevu)}</span></div>
+      <div class="bar ${paye > prevu ? 'over' : ''}"><span style="width:${pct.toFixed(1)}%"></span></div>
+      <div class="stats">
+        <div class="stat"><div class="l">Reste</div><div class="v num ${prevu - paye < 0 ? 'bad' : ''}">${chf(prevu - paye)}</div></div>
+        <div class="stat"><div class="l">Estimation</div><div class="v num ${ecart > 1 ? 'bad' : ecart < -1 ? 'good' : ''}">${chf(estim)}</div></div>
+        ${resteJour || `<div class="stat"><div class="l">Écart</div><div class="v num ${ecart > 1 ? 'bad' : ecart < -1 ? 'good' : ''}">${ecart > 0 ? '+' : ''}${nf0.format(Math.round(ecart))}</div></div>`}
+      </div>
+    </section>`;
+
+    // Par catégorie
+    h += `<h2>Par catégorie <small>payé / prévu</small></h2><div class="card">`;
+    const cats = CATS.map((c) => {
+      const rs = scope.filter((r) => r.cat === c.k);
+      return { c, prevu: rs.reduce((s, r) => s + r.prevu, 0), paye: rs.reduce((s, r) => s + r.paye, 0), n: rs.length };
+    }).filter((x) => x.n);
+    h += cats.map(({ c, prevu: pv, paye: pp }) => {
+      const over = pp > pv + 0.5;
+      return `<div class="row"><span class="ico">${c.ico}</span><span class="name">${esc(c.k.replace(/^\S+\s/, ''))}</span>
+        <span class="amt num">${chf(pp)} <small>/ ${nf0.format(Math.round(pv))}</small></span>
+        <div class="bar ${over ? 'over' : ''}" style="--c:${meta.c}"><span style="width:${pv ? Math.min(100, pp / pv * 100).toFixed(1) : (pp ? 100 : 0)}%"></span></div>
+        <div class="sub"><span>${over ? `<span class="bad">Dépassé de ${chf(pp - pv)}</span>` : `Reste ${chf(pv - pp)}`}</span></div></div>`;
+    }).join('') || `<div class="empty">Rien de prévu ici.</div>`;
+    h += `</div>`;
+
+    // Hôtels par étape
+    const hotels = scope.filter((r) => r.cat === HOTEL && !r.horsBudget);
+    if (hotels.length) {
+      const hp = hotels.reduce((s, r) => s + r.prevu, 0), hr = hotels.reduce((s, r) => s + r.paye, 0);
+      const aRes = hotels.filter((r) => !r.paye).length;
+      h += `<h2>Hôtels par étape <small>${aRes ? `${aRes} à réserver` : 'tout est réservé'}</small></h2><div class="card">`;
+      const cur = currentPays() === sel || sel === 'Tout' ? hotels.find((r) => t >= r.date && t < addDays(r.date, r.qte || 1)) : null;
+      h += hotels.map((r) => {
+        const d = r.paye - r.prevu;
+        const tag = r.paye ? `<span class="tag ${d > 0.5 ? 'over' : 'under'}">${d > 0.5 ? '+' : d < -0.5 ? '−' : ''}${nf0.format(Math.abs(Math.round(d)))}</span>` : `<span class="tag">À réserver</span>`;
+        return `<div class="hotel"><div><div class="name">${esc(r.etape)} ${r === cur ? '<span class="tag now">ce soir</span>' : ''}</div>
+          <div class="meta">${dateTxt(r.date)} · ${r.qte} nuit${r.qte > 1 ? 's' : ''} · budget ${nf0.format(Math.round(r.prevu / (r.qte || 1)))}/nuit${sel === 'Tout' ? ' · ' + esc(r.pays) : ''}</div></div>
+          <div class="right num"><div>${r.paye ? chf(r.paye) : chf(r.prevu)}</div><div>${tag}</div></div></div>`;
+      }).join('');
+      h += `<div class="hotel"><div class="name">Total hôtels</div><div class="right num"><b>${chf(hr)}</b> <span class="meta">/ ${chf(hp)}</span></div></div></div>`;
+    }
+
+    // Dernières dépenses
+    const jr = (sel === 'Tout' ? m.jr : m.jr.filter((e) => e.pays === sel));
+    const shown = ui.showAll ? jr : jr.slice(0, 12);
+    h += `<h2>Dépenses <small>${jr.length} saisie${jr.length > 1 ? 's' : ''}</small></h2><div class="card">`;
+    h += shown.map((e) => {
+      const c = catMeta(e.cat);
+      const open = openEntry === e.id;
+      return `<button class="entry ${e.pending ? 'pending' : ''}" type="button" data-entry="${esc(e.id)}" aria-expanded="${open}">
+          <span class="ico">${c.ico}</span><span class="name">${esc(e.libelle || c.court + (e.etape ? ' · ' + e.etape : ''))}</span><span class="amt num">${chf(e.chf)}</span>
+          <span class="meta">${dateTxt(e.date)} · ${esc(e.qui || '—')}${sel === 'Tout' ? ' · ' + esc(e.pays) : ''}</span><span class="loc num">${e.devise === 'CHF' ? '' : nf2.format(e.montant) + ' ' + esc(e.devise)}</span>
+        </button>${open ? `<div class="entry-actions"><button class="btn danger" type="button" data-cancel="${esc(e.id)}">${confirmId === e.id ? 'Confirmer l’annulation' : 'Annuler cette dépense'}</button></div>` : ''}`;
+    }).join('') || `<div class="empty">Aucune dépense saisie pour l’instant. Appuie sur « + Dépense ».</div>`;
+    if (jr.length > shown.length) h += `<button class="more" type="button" data-act="all">Voir les ${jr.length} dépenses</button>`;
+    h += `</div>`;
+
+    h += `<p class="foot">Données du ${snap.maj ? new Date(snap.maj).toLocaleString('fr-CH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'} · tout est enregistré dans le Google Sheet « Budget Asie 2027 »</p>`;
+    app.innerHTML = h;
+  }
+
+  function renderSync() {
+    const el = $('#sync');
+    const n = queue.length;
+    let cls = '', txt = '';
+    if (!cfg || !cfg.api) { txt = 'Non configurée'; }
+    else if (syncing) { cls = 'busy'; txt = 'Synchro…'; }
+    else if (n) { cls = lastError && navigator.onLine ? 'err' : 'wait'; txt = `${n} en attente${!navigator.onLine ? ' · hors ligne' : lastError ? ' · réessayer' : ''}`; }
+    else if (lastError) { cls = 'err'; txt = 'Échec · réessayer'; }
+    else if (!navigator.onLine) { txt = 'Hors ligne'; }
+    else if (snap && snap.maj) { cls = 'ok'; txt = 'À jour · ' + new Date(snap.maj).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' }); }
+    el.className = 'pill ' + cls;
+    el.innerHTML = `<i></i><span>${esc(txt)}</span>`;
+  }
+
+  // ── Accueil / réglages ──
+  function setupHtml() {
+    return `<form class="setup" id="setup">
+      <h1>Bienvenue 👋</h1>
+      <p>Deux infos, une seule fois sur ce téléphone. Ensuite tout se synchronise avec le Google Sheet, même après un passage hors connexion.</p>
+      <label class="field"><span>Ton prénom</span><input type="text" id="s-qui" maxlength="30" required value="${esc(cfg && cfg.qui || '')}" placeholder="ex. Michael"></label>
+      <label class="field"><span>Lien de synchronisation</span><input type="url" id="s-api" required value="${esc(cfg && cfg.api || '')}" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <div class="err-msg" id="s-err"></div>
+      <button class="btn primary wide" type="submit">Commencer</button>
+      ${cfg && cfg.api ? `<p style="margin-top:16px">Pour installer l’appli sur un autre téléphone, envoie-lui ce lien (en privé : il donne accès au budget) :</p><button class="btn wide" type="button" id="s-share">Copier le lien d’installation</button>` : ''}
+    </form>`;
+  }
+  function bindSetup() {
+    $('#setup').addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const qui = $('#s-qui').value.trim(), api = $('#s-api').value.trim();
+      if (!qui) { $('#s-err').textContent = 'Entre ton prénom.'; return; }
+      if (!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(api)) { $('#s-err').textContent = 'Le lien doit commencer par https://script.google.com/'; return; }
+      const changed = !cfg || cfg.api !== api;
+      cfg = { api, qui };
+      save(K.cfg, cfg);
+      if (changed) { snap = null; save(K.snap, null); }
+      render(); sync();
+    });
+    const sh = $('#s-share');
+    if (sh) sh.addEventListener('click', () => copy(location.origin + location.pathname + '#api=' + encodeURIComponent(cfg.api)));
+  }
+  function copy(text) {
+    const done = () => toast('Lien copié. Envoie-le à ton/ta partenaire en message privé.');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => prompt('Copie ce lien :', text));
+    else prompt('Copie ce lien :', text);
+  }
+
+  // ── Synchronisation ──
+  let syncAgain = false;
+  async function sync() {
+    if (!cfg || !cfg.api) return;
+    if (syncing) { syncAgain = true; return; } // relancée dès la fin de la synchro en cours
+    if (!navigator.onLine) { renderSync(); return; }
+    syncing = true; lastError = ''; renderSync();
+    try {
+      let data = null;
+      if (queue.length) {
+        const ops = queue.slice();
+        const res = await fetchJson(cfg.api, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ops }) });
+        if (!res.ok) throw new Error(res.erreur || 'Le Google Sheet a refusé l’envoi.');
+        const done = new Set([...(res.ajoutes || []), ...(res.annules || []), ...(res.ignores || []).filter(Boolean)]);
+        if ((res.ignores || []).length) toast('Une saisie invalide a été ignorée par le Google Sheet.');
+        queue = queue.filter((o) => !done.has(o.type === 'add' ? o.entry.id : o.id));
+        save(K.queue, queue);
+        if (res.data) data = Object.assign({ ok: true }, res.data);
+      }
+      if (!data) data = await fetchJson(cfg.api + (cfg.api.includes('?') ? '&' : '?') + 't=' + Date.now());
+      if (!data.ok) throw new Error('Réponse inattendue du Google Sheet.');
+      snap = { lignes: data.lignes, taux: data.taux, journal: data.journal, maj: data.maj };
+      save(K.snap, snap);
+    } catch (e) {
+      lastError = e && e.message ? e.message : 'Synchro impossible';
+    } finally {
+      syncing = false;
+      render();
+      if (syncAgain) { syncAgain = false; if (!lastError) sync(); }
+    }
+  }
+  async function fetchJson(url, opts) {
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 60000);
+    try {
+      const r = await fetch(url, Object.assign({ redirect: 'follow', signal: ctl.signal }, opts));
+      if (!r.ok) throw new Error('Erreur ' + r.status + ' du Google Sheet.');
+      const txt = await r.text();
+      try { return JSON.parse(txt); } catch (e) { throw new Error('Le lien ne répond pas comme prévu : vérifie qu’il se termine par /exec et que l’accès est « Tout le monde ».'); }
+    } finally { clearTimeout(to); }
+  }
+
+  // ── Saisie ──
+  let fCat = CATS[2].k;
+  function openSheet() {
+    const sel = ui.pays && ui.pays !== 'Tout' ? ui.pays : currentPays();
+    const pays = sel === 'Tout' ? 'Général' : sel;
+    $('#f-pays').innerHTML = PAYS.map((p) => `<option ${p.nom === pays ? 'selected' : ''}>${esc(p.nom)}</option>`).join('');
+    $('#f-devise').innerHTML = DEVISES.map((d) => `<option ${d === paysMeta(pays).dev ? 'selected' : ''}>${d}</option>`).join('');
+    $('#f-date').value = today();
+    $('#f-montant').value = ''; $('#f-libelle').value = ''; $('#f-err').textContent = '';
+    const names = [...new Set([cfg.qui, ...journal().map((e) => e.qui).filter(Boolean), 'Commun'])];
+    $('#f-qui').innerHTML = names.map((n) => `<option ${n === cfg.qui ? 'selected' : ''}>${esc(n)}</option>`).join('');
+    fCat = CATS[2].k;
+    renderCats(); fillEtapes(); conv();
+    $('#sheet').hidden = false; $('#sheet-bg').hidden = false;
+    setTimeout(() => $('#f-montant').focus(), 60);
+  }
+  function closeSheet() { $('#sheet').hidden = true; $('#sheet-bg').hidden = true; }
+  function renderCats() {
+    $('#f-cats').innerHTML = CATS.map((c) => `<button type="button" class="cat" data-cat="${esc(c.k)}" aria-pressed="${c.k === fCat}"><b>${c.ico}</b>${esc(c.court)}</button>`).join('');
+    $('#f-libelle').placeholder = catMeta(fCat).ex || '';
+    $('#f-etape-wrap').hidden = fCat !== HOTEL;
+  }
+  function fillEtapes() {
+    const pays = $('#f-pays').value;
+    const hs = (snap ? snap.lignes : []).filter((l) => l.pays === pays && l.cat === HOTEL);
+    const cur = currentHotelEtape(pays);
+    $('#f-etape').innerHTML = hs.length
+      ? hs.map((l) => `<option value="${esc(l.etape)}" ${l.etape === cur ? 'selected' : ''}>${esc(l.etape)} · ${dateTxt(l.date)} · ${l.qte} nuit${l.qte > 1 ? 's' : ''}</option>`).join('')
+      : `<option value="">Aucun hôtel prévu dans ce pays</option>`;
+  }
+  function conv() {
+    const v = parseNum($('#f-montant').value), d = $('#f-devise').value;
+    $('#f-conv').textContent = v > 0 && d !== 'CHF' ? `≈ ${nf2.format(toChf(v, d))} CHF` : '';
+  }
+  $('#sheet').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const montant = parseNum($('#f-montant').value);
+    if (!(montant > 0)) { $('#f-err').textContent = 'Entre un montant (ex. 1250 ou 12,50).'; $('#f-montant').focus(); return; }
+    const pays = $('#f-pays').value;
+    const etape = fCat === HOTEL ? $('#f-etape').value : '';
+    if (fCat === HOTEL && !etape) { $('#f-err').textContent = 'Choisis l’étape de l’hôtel (ou une autre catégorie).'; return; }
+    const entry = {
+      id: uid(), saisi: new Date().toISOString(), date: $('#f-date').value || today(), pays, cat: fCat, etape,
+      libelle: $('#f-libelle').value.trim(), montant: Math.round(montant * 100) / 100, devise: $('#f-devise').value, qui: $('#f-qui').value,
+    };
+    queue.push({ type: 'add', entry });
+    if (!save(K.queue, queue)) toast('Attention : stockage du téléphone indisponible, synchronise vite.');
+    closeSheet();
+    ui.pays = pays; save(K.ui, ui);
+    render();
+    toast(`${catMeta(fCat).ico} ${chf(toChf(entry.montant, entry.devise))} enregistrés${navigator.onLine ? '' : ' · envoi au retour du réseau'}`);
+    sync();
+  });
+  $('#f-cats').addEventListener('click', (ev) => { const b = ev.target.closest('[data-cat]'); if (!b) return; fCat = b.dataset.cat; renderCats(); });
+  $('#f-pays').addEventListener('change', () => { $('#f-devise').value = paysMeta($('#f-pays').value).dev; fillEtapes(); conv(); });
+  $('#f-montant').addEventListener('input', conv);
+  $('#f-devise').addEventListener('change', conv);
+  $('#close-sheet').addEventListener('click', closeSheet);
+  $('#sheet-bg').addEventListener('click', closeSheet);
+  $('#fab').addEventListener('click', openSheet);
+
+  // ── Interactions de la page ──
+  document.addEventListener('click', (ev) => {
+    const p = ev.target.closest('[data-pays]');
+    if (p) { ui.pays = p.dataset.pays; ui.showAll = false; save(K.ui, ui); openEntry = null; render(); return; }
+    const en = ev.target.closest('[data-entry]');
+    if (en) { openEntry = openEntry === en.dataset.entry ? null : en.dataset.entry; confirmId = null; render(); return; }
+    const c = ev.target.closest('[data-cancel]');
+    if (c) {
+      const id = c.dataset.cancel;
+      if (confirmId !== id) { confirmId = id; render(); return; }
+      const i = queue.findIndex((o) => o.type === 'add' && o.entry.id === id);
+      if (i >= 0) queue.splice(i, 1); else queue.push({ type: 'cancel', id });
+      save(K.queue, queue);
+      openEntry = null; confirmId = null;
+      render(); toast('Dépense annulée.'); sync();
+      return;
+    }
+    const a = ev.target.closest('[data-act]');
+    if (a && a.dataset.act === 'all') { ui.showAll = true; render(); return; }
+    if (a && a.dataset.act === 'sync') { sync(); return; }
+  });
+  $('#sync').addEventListener('click', () => sync());
+  $('#open-settings').addEventListener('click', () => { $('#fab').hidden = true; $('#app').innerHTML = setupHtml(); bindSetup(); });
+
+  let toastT = 0;
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3500); }
+  const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = () => window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+
+  // ── Démarrage ──
+  window.addEventListener('online', () => sync());
+  window.addEventListener('offline', renderSync);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(); });
+  setInterval(() => { if (document.visibilityState === 'visible' && queue.length) sync(); }, 60000);
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  render();
+  sync();
+})();
+</script>
+</body>
+</html>
