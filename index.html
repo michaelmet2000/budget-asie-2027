@@ -154,6 +154,13 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
 .check { display: flex; align-items: center; gap: 12px; background: var(--bg); border: 1px solid var(--bd); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: 15px; }
 .check input { width: 22px; height: 22px; margin: 0; accent-color: var(--kr); flex: none; }
 .check small { display: block; color: var(--dim); font-size: 12.5px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.seg button { border: 1px solid var(--bd); background: var(--bg); border-radius: 12px; padding: 10px 4px; font-weight: 600; font-size: 14.5px; color: var(--dim); display: grid; justify-items: center; gap: 1px; }
+.seg button small { font-size: 11px; font-weight: 500; color: var(--mute); }
+.seg button[aria-pressed="true"] { border-color: var(--ac); color: var(--tx); background: var(--s3); }
+.who { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #10101F; background: var(--c, var(--ac)); }
+.envs { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--dim); }
+.envs b { color: var(--tx); font-weight: 600; }
 
 /* Réglages / accueil */
 .setup { background: var(--s1); border: 1px solid var(--bd); border-radius: var(--r); padding: 18px; }
@@ -197,7 +204,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   <label class="field" id="f-etape-wrap"><span>Hôtel · étape</span><select id="f-etape"></select></label>
   <label class="check" id="f-resv-wrap"><input type="checkbox" id="f-resv"><span>Réservé, à payer sur place<small>Compté dans le budget dès maintenant ; à marquer « payé » une fois réglé.</small></span></label>
   <label class="field"><span>Libellé (facultatif)</span><input type="text" id="f-libelle" maxlength="120" placeholder="ex. ramen à Shinjuku"></label>
-  <label class="field"><span>Payé par</span><select id="f-qui"></select></label>
+  <div class="field"><span>Pour qui ?</span><div class="seg" id="f-pour"></div></div>
   <div class="err-msg" id="f-err" role="alert"></div>
   <button class="btn primary wide" type="submit">Enregistrer</button>
 </form>
@@ -228,6 +235,12 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   const HOTEL = CATS[0].k;
   const IMPREVU = CATS[6].k; // toujours saisi sur « Général » : c'est là qu'est la réserve
   const RESV = 'réservé';    // hôtel réservé, à payer sur place
+  // Qui paie quoi : chaque dépense est pour Michael, pour Océ ou pour « Nous 2 » (moitié chacun).
+  // Shopping et divers : une enveloppe par personne. Le reste (hôtels, vols, repas, activités…) est commun.
+  const PERSONNES = [{ nom: 'Michael', c: '#5DADE2' }, { nom: 'Océ', c: '#FF8FB8' }];
+  const NOUS = 'Nous 2';
+  const CATS_PERSO = ['🛍️ Shopping', '📦 Divers'];
+  const GENERAL = 'Général';
   const DEVISES = ['CHF', 'THB', 'VND', 'JPY', 'KRW', 'CNY', 'HKD', 'USD', 'EUR'];
   const K = { cfg: 'ba27-config', snap: 'ba27-snapshot', queue: 'ba27-queue', ui: 'ba27-ui' };
 
@@ -248,6 +261,13 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12));
   const paysMeta = (nom) => PAYS.find((p) => p.nom === nom) || PAYS[PAYS.length - 1];
   const catMeta = (k) => CATS.find((c) => c.k === k) || { k, ico: '•', court: k };
+  const sansAccent = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  /** Michael, Océ ou Nous 2 (tout le reste, dont l'ancien « Commun », compte pour les deux). */
+  const pourDe = (v) => (PERSONNES.find((p) => sansAccent(p.nom) === sansAccent(v)) || { nom: NOUS }).nom;
+  /** Part de la personne p dans une dépense ou une ligne de budget « pour » quelqu'un. */
+  const part = (pour, p) => (pour === p ? 1 : pour === NOUS ? 0.5 : 0);
+  const moi = () => (cfg ? PERSONNES.find((p) => sansAccent(p.nom) === sansAccent(cfg.qui)) : null);
+  const persMeta = (nom) => PERSONNES.find((p) => p.nom === nom) || { nom, c: 'var(--ac)' };
 
   // ── État ──
   let cfg = load(K.cfg, null);            // { api, qui }
@@ -278,39 +298,69 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     const cancelled = new Set(queue.filter((o) => o.type === 'cancel').map((o) => o.id));
     const paid = new Set(queue.filter((o) => o.type === 'pay').map((o) => o.id));
     const server = (snap ? snap.journal : []).filter((e) => e.statut !== 'annulé' && !cancelled.has(e.id))
-      .map((e) => Object.assign({}, e, { chf: e.chf != null ? e.chf : toChf(e.montant, e.devise) }, paid.has(e.id) ? { statut: 'ok', pendingPay: true } : null));
+      .map((e) => Object.assign({}, e, { qui: pourDe(e.qui), chf: e.chf != null ? e.chf : toChf(e.montant, e.devise) }, paid.has(e.id) ? { statut: 'ok', pendingPay: true } : null));
     const known = new Set(server.map((e) => e.id));
     const pending = queue.filter((o) => o.type === 'add' && !known.has(o.entry.id) && !cancelled.has(o.entry.id))
-      .map((o) => Object.assign({}, o.entry, { chf: toChf(o.entry.montant, o.entry.devise), pending: true }));
+      .map((o) => Object.assign({}, o.entry, { qui: pourDe(o.entry.qui), chf: toChf(o.entry.montant, o.entry.devise), pending: true }));
     return server.concat(pending).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.saisi || '').localeCompare(a.saisi || ''));
   }
 
+  /**
+   * Chaque paiement est rattaché à sa ligne de budget (pays + catégorie, + étape pour un hôtel ; sinon la ligne « Général »
+   * de la catégorie, ex. le shopping). Ligne commune : tout le paiement. Enveloppes perso : la dépense de la personne,
+   * plus la moitié d'une dépense « Nous 2 ». parts = ce que chaque personne a dépensé sur la ligne.
+   */
   function model() {
-    const lignes = snap ? snap.lignes : [];
+    const zero = () => Object.fromEntries(PERSONNES.map((p) => [p.nom, 0]));
+    const rows = (snap ? snap.lignes : []).map((l) => Object.assign({}, l, {
+      pour: pourDe(l.pour), prevu: l.statut === 'Option (non comptée)' ? 0 : (l.prevu || 0), paye: 0, aPayer: 0, parts: zero(),
+    }));
     const jr = journal();
-    const key = (pays, cat, etape) => cat === HOTEL ? `${pays}|${cat}|${etape}` : `${pays}|${cat}`;
-    const paid = new Map(), aPayer = new Map(); // aPayer : hôtels réservés, encore à régler sur place
+    const ajoute = (r, e, montant, parts) => {
+      r.paye += montant;
+      if (e.statut === RESV) r.aPayer += montant;
+      for (const p in parts) r.parts[p] += parts[p];
+    };
+    const horsBudget = new Map(); // paiements sans ligne de budget (ex. une activité sur « Général ») : comptés quand même
     for (const e of jr) {
-      const k = key(e.pays, e.cat, e.etape);
-      paid.set(k, (paid.get(k) || 0) + e.chf);
-      if (e.statut === RESV) aPayer.set(k, (aPayer.get(k) || 0) + e.chf);
+      const vise = (pays) => rows.filter((r) => r.pays === pays && r.cat === e.cat && (e.cat !== HOTEL || r.etape === e.etape));
+      let ls = vise(e.pays);
+      if (!ls.length && e.cat !== HOTEL) ls = vise(GENERAL);
+      const partsDe = (s) => Object.fromEntries(PERSONNES.map((p) => [p.nom, e.chf * s(p.nom)]));
+      const commune = ls.find((r) => r.pour === NOUS);
+      if (commune) { ajoute(commune, e, e.chf, partsDe((p) => part(e.qui, p))); continue; }
+      for (const p of PERSONNES) {
+        const s = part(e.qui, p.nom);
+        if (!s) continue;
+        let r = ls.find((x) => x.pour === p.nom);
+        if (!r) {
+          const k = `${e.pays}|${e.cat}|${e.cat === HOTEL ? e.etape : ''}`;
+          if (!horsBudget.has(k)) horsBudget.set(k, { pays: e.pays, cat: e.cat, etape: e.cat === HOTEL ? e.etape : '', poste: catMeta(e.cat).court + ' (hors budget)', pour: NOUS, prevu: 0, paye: 0, aPayer: 0, parts: zero(), qte: 0, horsBudget: true });
+          r = horsBudget.get(k);
+        }
+        ajoute(r, e, e.chf * s, { [p.nom]: e.chf * s });
+      }
     }
-    const used = new Set();
-    const rows = lignes.map((l) => {
-      const k = key(l.pays, l.cat, l.etape);
-      used.add(k);
-      const p = paid.get(k) || 0;
-      const prevu = l.statut === 'Option (non comptée)' ? 0 : (l.prevu || 0);
-      const estim = !p ? prevu : l.cat === HOTEL ? p : Math.max(prevu, p);
-      return Object.assign({}, l, { prevu, paye: p, estim, aPayer: aPayer.get(k) || 0 });
-    });
-    // Paiements sans ligne de budget (ex. un imprévu au Japon) : comptés quand même
-    for (const [k, v] of paid) {
-      if (used.has(k)) continue;
-      const [pays, cat, etape] = k.split('|');
-      rows.push({ pays, cat, etape: etape || '', poste: catMeta(cat).court + ' (hors budget)', prevu: 0, paye: v, estim: v, qte: 0, horsBudget: true });
+    rows.push(...horsBudget.values());
+    for (const r of rows) {
+      r.estim = !r.paye ? r.prevu : r.cat === HOTEL ? r.paye : Math.max(r.prevu, r.paye);
+      r.reste = r.estim - r.paye; // ce qui reste à dépenser sur la ligne
     }
     return { rows, jr };
+  }
+
+  /** Où en est chacun : budget (moitié du commun + ses enveloppes), dépensé, estimation finale, enveloppes perso. */
+  function parPersonne(rows) {
+    return PERSONNES.map((p) => {
+      const budget = rows.reduce((s, r) => s + r.prevu * part(r.pour, p.nom), 0);
+      const depense = rows.reduce((s, r) => s + r.parts[p.nom], 0);
+      const estim = rows.reduce((s, r) => s + r.parts[p.nom] + r.reste * part(r.pour, p.nom), 0);
+      const envs = CATS_PERSO.map((c) => {
+        const rs = rows.filter((r) => r.cat === c && r.pour === p.nom);
+        return { c, n: rs.length, prevu: rs.reduce((s, r) => s + r.prevu, 0), paye: rs.reduce((s, r) => s + r.parts[p.nom], 0) };
+      }).filter((x) => x.n);
+      return Object.assign({ budget, depense, estim, envs }, p);
+    });
   }
 
   function currentPays() {
@@ -335,7 +385,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   function render() {
     renderSync();
     const app = $('#app');
-    if (!cfg || !cfg.api || !cfg.qui) { $('#fab').hidden = true; app.innerHTML = setupHtml(); bindSetup(); return; }
+    if (!cfg || !cfg.api || !moi()) { $('#fab').hidden = true; app.innerHTML = setupHtml(); bindSetup(); return; }
     $('#fab').hidden = !snap;
     if (!snap) {
       app.innerHTML = `<div class="setup"><h1>Première synchro…</h1><p>Il faut du réseau une première fois pour charger le budget depuis le Google Sheet. Ensuite, l’appli marche aussi sans connexion.</p>${lastError ? `<p class="bad">${esc(lastError)}</p><button class="btn" type="button" data-act="sync">Réessayer</button>` : ''}</div>`;
@@ -381,6 +431,19 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
         ${resteJour || `<div class="stat"><div class="l">Écart</div><div class="v num ${ecart > 1 ? 'bad' : ecart < -1 ? 'good' : ''}">${ecart > 0 ? '+' : ''}${nf0.format(Math.round(ecart))}</div></div>`}
       </div>
     </section>`;
+
+    // Par personne
+    h += `<h2>Par personne <small>dépensé / budget</small></h2><div class="card">`;
+    h += parPersonne(scope).map((p) => {
+      const over = p.depense > p.budget + 0.5;
+      const envs = p.envs.map((e) => `<span>${catMeta(e.c).ico} <b class="${e.paye > e.prevu + 0.5 ? 'bad' : ''}">${nf0.format(Math.round(e.paye))}</b> / ${nf0.format(Math.round(e.prevu))}</span>`).join('');
+      return `<div class="row" style="--c:${p.c}"><span class="who">${esc(p.nom[0])}</span><span class="name">${esc(p.nom)}${moi() && moi().nom === p.nom ? ' <small class="meta" style="color:var(--dim);font-weight:500">· toi</small>' : ''}</span>
+        <span class="amt num">${chf(p.depense)} <small>/ ${nf0.format(Math.round(p.budget))}</small></span>
+        <div class="bar ${over ? 'over' : ''}"><span style="width:${p.budget ? Math.min(100, p.depense / p.budget * 100).toFixed(1) : 0}%"></span></div>
+        <div class="sub"><span>${over ? `<span class="bad">Dépassé de ${chf(p.depense - p.budget)}</span>` : `Reste ${chf(p.budget - p.depense)}`}</span><span class="num ${p.estim > p.budget + 1 ? 'bad' : ''}">Estimation ${chf(p.estim)}</span></div>
+        ${envs ? `<div class="envs">${envs}</div>` : ''}</div>`;
+    }).join('');
+    h += `</div>`;
 
     // Par catégorie
     h += `<h2>Par catégorie <small>payé / prévu</small></h2><div class="card">`;
@@ -429,7 +492,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
       const open = openEntry === e.id;
       return `<button class="entry ${e.pending ? 'pending' : ''}" type="button" data-entry="${esc(e.id)}" aria-expanded="${open}">
           <span class="ico">${c.ico}</span><span class="name">${esc(e.libelle || c.court + (e.etape ? ' · ' + e.etape : ''))}</span><span class="amt num">${chf(e.chf)}</span>
-          <span class="meta">${dateTxt(e.date)} · ${esc(e.qui || '—')}${sel === 'Tout' ? ' · ' + esc(e.pays) : ''}${e.statut === RESV ? ' · <span class="resv-txt">à payer sur place</span>' : ''}${e.pays !== sel && sel !== 'Tout' ? ' · sur la réserve' : ''}</span><span class="loc num">${e.devise === 'CHF' ? '' : nf2.format(e.montant) + ' ' + esc(e.devise)}</span>
+          <span class="meta">${dateTxt(e.date)} · ${e.qui === NOUS ? '👥 Nous 2' : '👤 ' + esc(e.qui)}${sel === 'Tout' ? ' · ' + esc(e.pays) : ''}${e.statut === RESV ? ' · <span class="resv-txt">à payer sur place</span>' : ''}${e.pays !== sel && sel !== 'Tout' ? ' · sur la réserve' : ''}</span><span class="loc num">${e.devise === 'CHF' ? '' : nf2.format(e.montant) + ' ' + esc(e.devise)}</span>
         </button>${open ? `<div class="entry-actions">${e.statut === RESV ? `<button class="btn" type="button" data-pay="${esc(e.id)}">✓ Marquer comme payé</button>` : ''}<button class="btn danger" type="button" data-cancel="${esc(e.id)}">${confirmId === e.id ? 'Confirmer l’annulation' : e.statut === RESV ? 'Annuler' : 'Annuler cette dépense'}</button></div>` : ''}`;
     }).join('') || `<div class="empty">Aucune dépense saisie pour l’instant. Appuie sur « + Dépense ».</div>`;
     if (jr.length > shown.length) h += `<button class="more" type="button" data-act="all">Voir les ${jr.length} dépenses</button>`;
@@ -458,7 +521,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     return `<form class="setup" id="setup">
       <h1>Bienvenue 👋</h1>
       <p>Deux infos, une seule fois sur ce téléphone. Ensuite tout se synchronise avec le Google Sheet, même après un passage hors connexion.</p>
-      <label class="field"><span>Ton prénom</span><input type="text" id="s-qui" maxlength="30" required value="${esc(cfg && cfg.qui || '')}" placeholder="ex. Michael"></label>
+      <label class="field"><span>C’est le téléphone de…</span><select id="s-qui">${PERSONNES.map((p) => `<option ${moi() && moi().nom === p.nom ? 'selected' : ''}>${esc(p.nom)}</option>`).join('')}</select></label>
       <label class="field"><span>Lien de synchronisation</span><input type="url" id="s-api" required value="${esc(cfg && cfg.api || '')}" placeholder="https://script.google.com/macros/s/…/exec"></label>
       <div class="err-msg" id="s-err"></div>
       <button class="btn primary wide" type="submit">Commencer</button>
@@ -469,7 +532,6 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     $('#setup').addEventListener('submit', (ev) => {
       ev.preventDefault();
       const qui = $('#s-qui').value.trim(), api = $('#s-api').value.trim();
-      if (!qui) { $('#s-err').textContent = 'Entre ton prénom.'; return; }
       if (!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(api)) { $('#s-err').textContent = 'Le lien doit commencer par https://script.google.com/'; return; }
       const changed = !cfg || cfg.api !== api;
       cfg = { api, qui };
@@ -533,7 +595,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   }
 
   // ── Saisie ──
-  let fCat = CATS[2].k;
+  let fCat = CATS[2].k, fPour = NOUS, fPourChoisi = false; // « Pour qui » : suit la catégorie tant qu'on ne l'a pas touché
   function openSheet() {
     const sel = ui.pays && ui.pays !== 'Tout' ? ui.pays : currentPays();
     const pays = sel === 'Tout' ? 'Général' : sel;
@@ -541,9 +603,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     $('#f-devise').innerHTML = DEVISES.map((d) => `<option ${d === paysMeta(pays).dev ? 'selected' : ''}>${d}</option>`).join('');
     $('#f-date').value = today();
     $('#f-montant').value = ''; $('#f-libelle').value = ''; $('#f-err').textContent = ''; $('#f-resv').checked = false;
-    const names = [...new Set([cfg.qui, ...journal().map((e) => e.qui).filter(Boolean), 'Commun'])];
-    $('#f-qui').innerHTML = names.map((n) => `<option ${n === cfg.qui ? 'selected' : ''}>${esc(n)}</option>`).join('');
-    fCat = CATS[2].k;
+    fCat = CATS[2].k; fPourChoisi = false;
     renderCats(); fillEtapes(); conv();
     $('#sheet').hidden = false; $('#sheet-bg').hidden = false;
     setTimeout(() => $('#f-montant').focus(), 60);
@@ -555,6 +615,11 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     $('#f-etape-wrap').hidden = fCat !== HOTEL;
     $('#f-resv-wrap').hidden = fCat !== HOTEL;
     imprevuHint();
+    if (!fPourChoisi) fPour = CATS_PERSO.includes(fCat) && moi() ? moi().nom : NOUS;
+    renderPour();
+  }
+  function renderPour() {
+    $('#f-pour').innerHTML = PERSONNES.map((p) => p.nom).concat(NOUS).map((n) => `<button type="button" data-pour="${esc(n)}" aria-pressed="${n === fPour}">${esc(n)}<small>${n === NOUS ? '½ chacun' : n === (moi() && moi().nom) ? 'moi' : 'perso'}</small></button>`).join('');
   }
   /** Imprévu : le pays choisi dit où il a eu lieu, mais la dépense va sur « Général » (la réserve). */
   function imprevuHint() {
@@ -587,7 +652,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     const resv = fCat === HOTEL && $('#f-resv').checked;
     const entry = {
       id: uid(), saisi: new Date().toISOString(), date: $('#f-date').value || today(), pays, cat: fCat, etape,
-      libelle, montant: Math.round(montant * 100) / 100, devise: $('#f-devise').value, qui: $('#f-qui').value,
+      libelle, montant: Math.round(montant * 100) / 100, devise: $('#f-devise').value, qui: fPour,
       statut: resv ? RESV : 'ok',
     };
     queue.push({ type: 'add', entry });
@@ -600,6 +665,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     sync();
   });
   $('#f-cats').addEventListener('click', (ev) => { const b = ev.target.closest('[data-cat]'); if (!b) return; fCat = b.dataset.cat; renderCats(); });
+  $('#f-pour').addEventListener('click', (ev) => { const b = ev.target.closest('[data-pour]'); if (!b) return; fPour = b.dataset.pour; fPourChoisi = true; renderPour(); });
   $('#f-pays').addEventListener('change', () => { $('#f-devise').value = paysMeta($('#f-pays').value).dev; fillEtapes(); conv(); imprevuHint(); });
   $('#f-libelle').addEventListener('input', () => { if (fCat === IMPREVU) imprevuHint(); });
   $('#f-montant').addEventListener('input', conv);
