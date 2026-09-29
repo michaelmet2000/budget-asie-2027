@@ -209,11 +209,11 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   'use strict';
   // ── Référentiel du voyage ──
   const PAYS = [
-    { nom: 'Thaïlande', c: 'var(--th)', dev: 'THB', debut: '2027-02-17', fin: '2027-03-08' },
-    { nom: 'Vietnam', c: 'var(--vn)', dev: 'VND', debut: '2027-03-09', fin: '2027-03-28' },
-    { nom: 'Japon', c: 'var(--jp)', dev: 'JPY', debut: '2027-03-29', fin: '2027-04-26' },
-    { nom: 'Corée', c: 'var(--kr)', dev: 'KRW', debut: '2027-04-27', fin: '2027-05-05' },
-    { nom: 'Chine + HK', c: 'var(--cn)', dev: 'CNY', debut: '2027-05-06', fin: '2027-05-26' },
+    { nom: 'Thaïlande', c: 'var(--th)', dev: 'THB', debut: '2027-02-17', fin: '2027-03-10' },
+    { nom: 'Vietnam', c: 'var(--vn)', dev: 'VND', debut: '2027-03-11', fin: '2027-03-31' },
+    { nom: 'Japon', c: 'var(--jp)', dev: 'JPY', debut: '2027-04-01', fin: '2027-04-29' },
+    { nom: 'Corée', c: 'var(--kr)', dev: 'KRW', debut: '2027-04-30', fin: '2027-05-08' },
+    { nom: 'Chine + HK', c: 'var(--cn)', dev: 'CNY', debut: '2027-05-09', fin: '2027-05-31' },
     { nom: 'Général', c: 'var(--gen)', dev: 'CHF', debut: null, fin: null },
   ];
   const CATS = [
@@ -320,10 +320,14 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     return t < PAYS[0].debut ? 'Général' : 'Tout';
   }
 
-  function currentHotelEtape(pays) {
+  /** Hôtel de ce soir : si deux séjours se chevauchent (Krabi en 2 fois, Hanoï), le plus récent l'emporte. */
+  function hotelDuSoir(hotels) {
     const t = today();
-    const hs = (snap ? snap.lignes : []).filter((l) => l.pays === pays && l.cat === HOTEL && l.date);
-    const h = hs.find((l) => t >= l.date && t < addDays(l.date, l.qte || 1));
+    return hotels.filter((l) => l.date && t >= l.date && t < addDays(l.date, l.qte || 1))
+      .sort((a, b) => b.date.localeCompare(a.date))[0] || null;
+  }
+  function currentHotelEtape(pays) {
+    const h = hotelDuSoir((snap ? snap.lignes : []).filter((l) => l.pays === pays && l.cat === HOTEL));
     return h ? h.etape : '';
   }
 
@@ -355,7 +359,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     }).join('')}</nav>`;
 
     // Carte principale
-    let kicker = sel === 'Tout' ? '2 personnes · 98 nuits' : sel === 'Général' ? 'Vols · avant départ · réserve' : `${dateTxt(meta.debut)} → ${dateTxt(meta.fin)}`;
+    let kicker = sel === 'Tout' ? '2 personnes · 103 nuits' : sel === 'Général' ? 'Vols · avant départ · réserve' : `${dateTxt(meta.debut)} → ${dateTxt(meta.fin)}`;
     let resteJour = '';
     const t = today();
     if (meta.debut && t >= meta.debut && t <= meta.fin) {
@@ -402,7 +406,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
       const surPlace = hotels.reduce((s, r) => s + r.aPayer, 0);
       const resume = [aRes ? `${aRes} à réserver` : 'tout est réservé', nSurPlace ? `${nSurPlace} à payer sur place` : ''].filter(Boolean).join(' · ');
       h += `<h2>Hôtels par étape <small>${resume}</small></h2><div class="card">`;
-      const cur = currentPays() === sel || sel === 'Tout' ? hotels.find((r) => t >= r.date && t < addDays(r.date, r.qte || 1)) : null;
+      const cur = currentPays() === sel || sel === 'Tout' ? hotelDuSoir(hotels) : null;
       h += hotels.map((r) => {
         const d = r.paye - r.prevu;
         const ecartTag = `<span class="tag ${d > 0.5 ? 'over' : 'under'}">${d > 0.5 ? '+' : d < -0.5 ? '−' : ''}${nf0.format(Math.abs(Math.round(d)))}</span>`;
