@@ -161,6 +161,27 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
 .who { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #10101F; background: var(--c, var(--ac)); }
 .envs { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--dim); }
 .envs b { color: var(--tx); font-weight: 600; }
+/* Modifier le budget */
+.ed-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.ed-tabs { display: flex; gap: 8px; margin: 0 0 14px; flex-wrap: wrap; }
+.ed-line { display: grid; grid-template-columns: 26px 1fr auto; gap: 2px 10px; padding: 11px 14px; border-top: 1px solid var(--bd); width: 100%; text-align: left; background: none; border-left: 0; border-right: 0; border-bottom: 0; align-items: center; }
+.ed-line:first-child { border-top: 0; }
+.ed-line .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-line .meta { grid-column: 2 / 4; font-size: 12px; color: var(--dim); }
+.ed-line .amt { font-weight: 600; text-align: right; white-space: nowrap; }
+.ed-line.pending .meta::after { content: ' · ⏳ pas encore envoyée'; color: var(--warn); }
+.ed-add { width: 100%; background: none; border: 0; border-top: 1px solid var(--bd); color: var(--ac); padding: 13px; font-weight: 600; font-size: 14.5px; }
+textarea { width: 100%; background: var(--bg); border: 1px solid var(--bd); border-radius: 12px; padding: 12px; font-size: 15px; font-family: inherit; color: inherit; min-height: 70px; resize: vertical; }
+input[type=number] { width: 100%; background: var(--bg); border: 1px solid var(--bd); border-radius: 12px; padding: 12px; font-size: 16px; }
+input[type=color] { width: 100%; height: 46px; background: var(--bg); border: 1px solid var(--bd); border-radius: 12px; padding: 4px; }
+.three { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 10px; }
+.impact { font-size: 13px; color: var(--dim); background: var(--bg); border: 1px dashed var(--bd); border-radius: 12px; padding: 9px 12px; margin: -4px 0 14px; }
+.impact b { color: var(--tx); }
+.rate { display: grid; grid-template-columns: 60px 1fr; gap: 10px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--bd); }
+.rate:first-child { border-top: 0; }
+.rate b { font-size: 15px; }
+.btns { display: flex; gap: 10px; }
+.btns .btn { flex: 1; }
 
 /* Réglages / accueil */
 .setup { background: var(--s1); border: 1px solid var(--bd); border-radius: var(--r); padding: 18px; }
@@ -178,6 +199,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   <div class="brand">Budget <em>Asie</em> 2027</div>
   <div class="top-actions">
     <button class="pill" id="sync" type="button" aria-live="polite"><i></i><span>…</span></button>
+    <button class="icon-btn" id="open-edit" type="button" aria-label="Modifier le budget">✏️</button>
     <button class="icon-btn" id="open-settings" type="button" aria-label="Réglages">⚙︎</button>
   </div>
 </header>
@@ -209,13 +231,15 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   <button class="btn primary wide" type="submit">Enregistrer</button>
 </form>
 
+<form class="sheet" id="ed-sheet" hidden autocomplete="off" novalidate></form>
+
 <div class="toast" id="toast" hidden role="status"></div>
 
 <script>
 (() => {
   'use strict';
   // ── Référentiel du voyage ──
-  const PAYS = [
+  const PAYS_DEFAUT = [ // remplacé par l'onglet « Pays » du Sheet dès la première synchro
     { nom: 'Thaïlande', c: 'var(--th)', dev: 'THB', debut: '2027-02-17', fin: '2027-03-10' },
     { nom: 'Vietnam', c: 'var(--vn)', dev: 'VND', debut: '2027-03-11', fin: '2027-03-31' },
     { nom: 'Japon', c: 'var(--jp)', dev: 'JPY', debut: '2027-04-01', fin: '2027-04-29' },
@@ -259,7 +283,8 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   const dateTxt = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' }); };
   const parseNum = (v) => { const s = String(v || '').replace(/[\s']/g, '').replace(',', '.'); if (!s) return NaN; return Number(s); };
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12));
-  const paysMeta = (nom) => PAYS.find((p) => p.nom === nom) || PAYS[PAYS.length - 1];
+  const paysL = () => etat().pays;
+  const paysMeta = (nom) => paysL().find((p) => p.nom === nom) || paysL().find((p) => p.nom === GENERAL) || { nom, c: 'var(--gen)', dev: 'CHF' };
   const catMeta = (k) => CATS.find((c) => c.k === k) || { k, ico: '•', court: k };
   const sansAccent = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
   /** Michael, Océ ou Nous 2 (tout le reste, dont l'ancien « Commun », compte pour les deux). */
@@ -290,8 +315,58 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   window.addEventListener('hashchange', () => { if (readHash()) { render(); sync(); } });
 
   // ── Calculs ──
-  function taux() { return Object.assign({ CHF: 1 }, snap && snap.taux); }
+  function taux() { return etat().taux; }
   function toChf(montant, dev) { const t = taux()[dev]; return t > 0 ? montant / t : 0; }
+
+  // ── Budget modifiable (lignes, pays, taux, plafond) ──
+  // Les modifications partent dans la même file d'attente que les dépenses (elles marchent donc hors ligne) et sont
+  // appliquées tout de suite à l'écran. La réserve imprévus = plafond − toutes les autres lignes (0 au minimum).
+  const EDITS = ['ligne', 'ligneAjout', 'ligneSuppr', 'pays', 'paysAjout', 'paysSuppr', 'taux', 'reglages'];
+  const OPTION = 'Option (non comptée)';
+  const STATUTS_DEFAUT = ['Estimé', 'Prix vérifié', 'Réservé', 'Payé', OPTION];
+  const estReserve = (l) => l.cat === IMPREVU && l.pays === GENERAL;
+  let etatCle = '', etatVal = null;
+  function etat() {
+    const cle = (snap ? snap.maj : '') + '|' + JSON.stringify(queue.filter((o) => EDITS.includes(o.type)));
+    if (cle === etatCle && etatVal) return etatVal;
+    const e = {
+      lignes: (snap ? snap.lignes : []).map((l) => Object.assign({}, l)),
+      pays: ((snap && snap.pays) || PAYS_DEFAUT).map((p) => Object.assign({}, p)),
+      taux: Object.assign({ CHF: 1 }, snap && snap.taux),
+      plafond: snap && snap.reglages ? snap.reglages.plafond : null,
+      statuts: (snap && snap.statuts && snap.statuts.length) ? snap.statuts : STATUTS_DEFAUT,
+    };
+    let modifie = false;
+    for (const o of queue) {
+      if (!EDITS.includes(o.type)) continue;
+      modifie = true;
+      if (o.type === 'ligne') { const l = e.lignes.find((x) => x.id === o.id); if (l) Object.assign(l, o.champs, { pending: true }); }
+      else if (o.type === 'ligneAjout') e.lignes.push(Object.assign({ etape: '', qte: 1, prix: 0, devise: 'CHF', statut: 'Estimé', pour: NOUS, date: null, note: '' }, o.ligne, { pending: true }));
+      else if (o.type === 'ligneSuppr') e.lignes = e.lignes.filter((x) => x.id !== o.id);
+      else if (o.type === 'pays') {
+        const p = e.pays.find((x) => x.nom === o.nom);
+        if (!p) continue;
+        const c = o.champs || {};
+        if ('debut' in c) p.debut = c.debut;
+        if ('fin' in c) p.fin = c.fin;
+        if ('devise' in c) p.dev = c.devise;
+        if ('couleur' in c) p.c = c.couleur;
+        if (c.nom && c.nom !== o.nom) { e.lignes.forEach((l) => { if (l.pays === o.nom) l.pays = c.nom; }); p.nom = c.nom; }
+      }
+      else if (o.type === 'paysAjout') { const g = e.pays.findIndex((x) => x.nom === GENERAL); e.pays.splice(g >= 0 ? g : e.pays.length, 0, { nom: o.pays.nom, debut: o.pays.debut, fin: o.pays.fin, dev: o.pays.devise, c: o.pays.couleur }); }
+      else if (o.type === 'paysSuppr') e.pays = e.pays.filter((x) => x.nom !== o.nom);
+      else if (o.type === 'taux') Object.assign(e.taux, o.valeurs);
+      else if (o.type === 'reglages') e.plafond = o.plafond;
+    }
+    if (modifie) {
+      // Même calcul que le Sheet : prévu = qté × prix ÷ taux (0 pour une option), puis la réserve
+      for (const l of e.lignes) if (!estReserve(l)) l.prevu = l.statut === OPTION ? 0 : Math.round((l.qte || 0) * (l.prix || 0) / (e.taux[l.devise] || 1) * 100) / 100;
+      const r = e.lignes.find(estReserve);
+      if (r && e.plafond) { r.prevu = r.prix = Math.max(0, Math.round((e.plafond - e.lignes.reduce((s, l) => s + (l === r ? 0 : l.prevu || 0), 0)) * 100) / 100); r.qte = 1; }
+    }
+    etatCle = cle; etatVal = e;
+    return e;
+  }
 
   /** Journal visible = serveur + saisies en attente, moins les annulations. */
   function journal() {
@@ -312,7 +387,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
    */
   function model() {
     const zero = () => Object.fromEntries(PERSONNES.map((p) => [p.nom, 0]));
-    const rows = (snap ? snap.lignes : []).map((l) => Object.assign({}, l, {
+    const rows = etat().lignes.map((l) => Object.assign({}, l, {
       pour: pourDe(l.pour), prevu: l.statut === 'Option (non comptée)' ? 0 : (l.prevu || 0), paye: 0, aPayer: 0, parts: zero(),
     }));
     const jr = journal();
@@ -365,9 +440,10 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
 
   function currentPays() {
     const t = today();
-    const p = PAYS.find((x) => x.debut && t >= x.debut && t <= x.fin);
+    const P = paysL().filter((x) => x.debut);
+    const p = P.find((x) => t >= x.debut && t <= x.fin);
     if (p) return p.nom;
-    return t < PAYS[0].debut ? 'Général' : 'Tout';
+    return P.length && t < P[0].debut ? 'Général' : 'Tout';
   }
 
   /** Hôtel de ce soir : si deux séjours se chevauchent (Krabi en 2 fois, Hanoï), le plus récent l'emporte. */
@@ -377,7 +453,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
       .sort((a, b) => b.date.localeCompare(a.date))[0] || null;
   }
   function currentHotelEtape(pays) {
-    const h = hotelDuSoir((snap ? snap.lignes : []).filter((l) => l.pays === pays && l.cat === HOTEL));
+    const h = hotelDuSoir(etat().lignes.filter((l) => l.pays === pays && l.cat === HOTEL));
     return h ? h.etape : '';
   }
 
@@ -391,6 +467,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
       app.innerHTML = `<div class="setup"><h1>Première synchro…</h1><p>Il faut du réseau une première fois pour charger le budget depuis le Google Sheet. Ensuite, l’appli marche aussi sans connexion.</p>${lastError ? `<p class="bad">${esc(lastError)}</p><button class="btn" type="button" data-act="sync">Réessayer</button>` : ''}</div>`;
       return;
     }
+    if (ui.edit) { $('#fab').hidden = true; app.innerHTML = editHtml(); return; }
     const m = model();
     const sel = ui.pays || currentPays();
     const scope = sel === 'Tout' ? m.rows : m.rows.filter((r) => r.pays === sel);
@@ -403,7 +480,8 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     let h = '';
     if (isIos() && !isStandalone()) h += `<div class="banner warn">📲 <b>Installe l’appli</b> : bouton Partager de Safari → « Sur l’écran d’accueil ». Ouvre-la ensuite toujours depuis l’icône.</div>`;
 
-    h += `<nav class="chips" aria-label="Pays">${['Tout', ...PAYS.map((p) => p.nom)].map((n) => {
+    { const e = etat(), b = resumeBudget(e); if (e.plafond && b.depasse > 0.5) h += `<div class="banner warn">⚠️ La réserve est à 0 : le budget dépasse le plafond de <b>${chf(b.depasse)}</b>. Ajuste dans ✏️.</div>`; }
+    h += `<nav class="chips" aria-label="Pays">${['Tout', ...paysL().map((p) => p.nom)].map((n) => {
       const c = n === 'Tout' ? 'var(--ac)' : paysMeta(n).c;
       return `<button class="chip" type="button" data-pays="${esc(n)}" aria-pressed="${n === sel}" style="--c:${c}"><span class="dot"></span>${esc(n === 'Tout' ? 'Tout le voyage' : n)}</button>`;
     }).join('')}</nav>`;
@@ -461,7 +539,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     h += `</div>`;
 
     // Hôtels par étape
-    const hotels = scope.filter((r) => r.cat === HOTEL && !r.horsBudget);
+    const hotels = scope.filter((r) => r.cat === HOTEL && !r.horsBudget).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     if (hotels.length) {
       const hp = hotels.reduce((s, r) => s + r.prevu, 0), hr = hotels.reduce((s, r) => s + r.paye, 0);
       const aRes = hotels.filter((r) => !r.paye).length;
@@ -516,6 +594,252 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
     el.innerHTML = `<i></i><span>${esc(txt)}</span>`;
   }
 
+  // ── Modifier le budget ──
+  function pousser(op) {
+    op.oid = uid();
+    op.qui = moi() ? moi().nom : '';
+    queue.push(op);
+    if (!save(K.queue, queue)) toast('Attention : stockage du téléphone indisponible, synchronise vite.');
+    render();
+    sync();
+  }
+  const ordreCat = (c) => { const i = CATS.findIndex((x) => x.k === c); return i < 0 ? 99 : i; };
+  function resumeBudget(e) {
+    const total = e.lignes.reduce((s, l) => s + (l.prevu || 0), 0);
+    const r = e.lignes.find(estReserve);
+    return { total, reserve: r ? r.prevu || 0 : 0, depasse: e.plafond ? total - e.plafond : 0 };
+  }
+
+  function editHtml() {
+    const e = etat();
+    const { total, reserve, depasse } = resumeBudget(e);
+    const tab = ui.edTab || 'lignes';
+    let h = `<h2 style="margin-top:4px">✏️ Modifier le budget <button class="icon-btn" type="button" data-act="edit-close" aria-label="Fermer">✕</button></h2>
+      <div class="ed-sum">
+        <div class="stat"><div class="l">Plafond</div><div class="v num">${e.plafond ? chf(e.plafond) : '—'}</div></div>
+        <div class="stat"><div class="l">Total prévu</div><div class="v num ${depasse > 0.5 ? 'bad' : ''}">${chf(total)}</div></div>
+        <div class="stat"><div class="l">${depasse > 0.5 ? 'Dépasse de' : 'Réserve'}</div><div class="v num ${depasse > 0.5 || reserve < 1 ? 'bad' : 'good'}">${chf(depasse > 0.5 ? depasse : reserve)}</div></div>
+      </div>
+      <nav class="ed-tabs">${[['lignes', 'Lignes'], ['pays', 'Pays & dates'], ['taux', 'Taux'], ['plafond', 'Plafond']].map(([k, n]) => `<button class="chip" type="button" data-edtab="${k}" aria-pressed="${k === tab}">${n}</button>`).join('')}</nav>`;
+
+    if (tab === 'lignes') {
+      const noms = e.pays.map((p) => p.nom);
+      const sel = noms.includes(ui.edPays) ? ui.edPays : noms[0];
+      h += `<nav class="chips" aria-label="Pays">${noms.map((n) => `<button class="chip" type="button" data-edpays="${esc(n)}" aria-pressed="${n === sel}" style="--c:${paysMeta(n).c}"><span class="dot"></span>${esc(n)}</button>`).join('')}</nav>`;
+      const ls = e.lignes.filter((l) => l.pays === sel)
+        .sort((a, b) => ordreCat(a.cat) - ordreCat(b.cat) || (a.date || '').localeCompare(b.date || ''));
+      const sousTotal = ls.reduce((s, l) => s + (l.prevu || 0), 0);
+      h += `<div class="card">${ls.map((l) => {
+        const c = catMeta(l.cat);
+        const meta = [l.cat === HOTEL ? esc(l.etape) + (l.date ? ' · ' + dateTxt(l.date) : '') : '', `${nf2.format(l.qte || 0)} × ${nf2.format(l.prix || 0)} ${esc(l.devise)}`,
+          l.pour === NOUS ? '👥 Nous 2' : '👤 ' + esc(l.pour), l.statut && l.statut !== 'Estimé' ? esc(l.statut) : ''].filter(Boolean).join(' · ');
+        return `<button class="ed-line ${l.pending ? 'pending' : ''}" type="button" data-edl="${esc(l.id)}"><span class="ico">${c.ico}</span><span class="name">${esc(l.poste)}</span><span class="amt num">${chf(l.prevu)}</span><span class="meta">${estReserve(l) ? 'calculée toute seule : plafond − le reste' : meta}</span></button>`;
+      }).join('') || `<div class="empty">Aucune ligne pour ce pays.</div>`}
+        <button class="ed-add" type="button" data-act="ed-add">+ Ajouter une ligne · ${esc(sel)}</button></div>
+        <p class="foot">Total ${esc(sel)} : ${chf(sousTotal)} · touche une ligne pour la modifier</p>`;
+    } else if (tab === 'pays') {
+      h += `<div class="card">${e.pays.map((p) => {
+        const n = p.debut && p.fin ? dayDiff(p.debut, p.fin) + 1 : 0;
+        return `<button class="ed-line" type="button" data-edp="${esc(p.nom)}"><span class="ico"><span class="who" style="--c:${esc(p.c)};width:14px;height:14px"></span></span><span class="name">${esc(p.nom)}</span><span class="amt">${esc(p.dev)}</span><span class="meta">${p.debut ? `${dateTxt(p.debut)} → ${dateTxt(p.fin)} · ${n} nuit${n > 1 ? 's' : ''}` : 'vols · avant départ · réserve'}</span></button>`;
+      }).join('')}<button class="ed-add" type="button" data-act="pays-add">+ Ajouter un pays</button></div>
+      <p class="foot">Dates = de la première à la dernière nuit dans le pays.</p>`;
+    } else if (tab === 'taux') {
+      h += `<div class="card">${Object.keys(e.taux).filter((d) => d !== 'CHF').map((d) => `<label class="rate"><b>${esc(d)}</b><input type="number" step="any" min="0" inputmode="decimal" data-taux="${esc(d)}" value="${e.taux[d]}"></label>`).join('')}</div>
+        <p class="foot">1 CHF = … dans chaque devise.</p>
+        <div class="btns"><button class="btn" type="button" data-act="taux-jour">🔄 Taux du jour</button><button class="btn primary" type="button" data-act="taux-save">Enregistrer</button></div>`;
+    } else {
+      h += `<div class="card" style="padding:16px"><label class="field"><span>Plafond du budget (CHF à deux)</span><input type="number" id="pl-val" min="0" step="100" inputmode="numeric" value="${e.plafond || ''}"></label>
+        <div class="hint">La <b>réserve imprévus</b> = plafond − toutes les autres lignes. Si une ligne augmente, la réserve baisse d'abord ; une fois à zéro, c'est le total qui dépasse le plafond.</div>
+        <button class="btn primary wide" type="button" data-act="pl-save">Enregistrer</button></div>`;
+    }
+    return h;
+  }
+
+  let edLigne = null, edPays = null, edConfirm = false;
+  function ouvrirEdSheet(html) {
+    $('#ed-sheet').innerHTML = `<div class="grab"></div>${html}`;
+    $('#ed-sheet').hidden = false; $('#sheet-bg').hidden = false;
+    edConfirm = false;
+  }
+  function fermerEdSheet() { $('#ed-sheet').hidden = true; $('#sheet-bg').hidden = true; edLigne = null; edPays = null; }
+
+  function ouvrirLigne(id) {
+    const e = etat();
+    const pays = ui.edPays && e.pays.some((p) => p.nom === ui.edPays) ? ui.edPays : e.pays[0].nom;
+    const l = id ? e.lignes.find((x) => x.id === id) : { id: null, pays, cat: HOTEL, etape: '', poste: '', qte: 1, prix: 0, devise: paysMeta(pays).dev || 'CHF', date: '', pour: NOUS, statut: 'Estimé', note: '', prevu: 0 };
+    if (!l) return;
+    edLigne = l;
+    const res = estReserve(l);
+    const opt = (list, v) => list.map((x) => `<option ${x === v ? 'selected' : ''}>${esc(x)}</option>`).join('');
+    ouvrirEdSheet(`<h3>${id ? 'Modifier la ligne' : 'Nouvelle ligne'} <button type="button" class="icon-btn" data-act="ed-close" aria-label="Fermer">✕</button></h3>
+      ${res ? `<div class="hint">🛟 La réserve se calcule toute seule : <b>plafond − toutes les autres lignes</b>. Change le plafond pour la modifier.</div>` : ''}
+      <div class="two">
+        <label class="field"><span>Pays</span><select id="e-pays" ${res ? 'disabled' : ''}>${opt(e.pays.map((p) => p.nom), l.pays)}</select></label>
+        <label class="field"><span>Catégorie</span><select id="e-cat" ${res ? 'disabled' : ''}>${CATS.filter((c) => res || c.k !== IMPREVU).map((c) => `<option value="${esc(c.k)}" ${c.k === l.cat ? 'selected' : ''}>${esc(c.k)}</option>`).join('')}</select></label>
+      </div>
+      <label class="field"><span>Poste</span><input type="text" id="e-poste" maxlength="200" value="${esc(l.poste)}" placeholder="ex. Hôtel Kyoto · 6 nuits"></label>
+      <label class="field" id="e-etape-wrap"><span>Étape (nom de la ville de l'hôtel)</span><input type="text" id="e-etape" maxlength="60" value="${esc(l.etape)}" placeholder="ex. Kyoto"></label>
+      <div class="three">
+        <label class="field"><span id="e-qte-lbl">Qté</span><input type="number" id="e-qte" min="0" step="any" inputmode="decimal" value="${l.qte ?? 1}" ${res ? 'disabled' : ''}></label>
+        <label class="field"><span>Prix unitaire</span><input type="number" id="e-prix" min="0" step="any" inputmode="decimal" value="${l.prix ?? 0}" ${res ? 'disabled' : ''}></label>
+        <label class="field"><span>Devise</span><select id="e-devise" ${res ? 'disabled' : ''}>${opt(Object.keys(e.taux), l.devise)}</select></label>
+      </div>
+      <div class="impact num" id="e-impact"></div>
+      <div class="two">
+        <label class="field"><span>Date (1re nuit)</span><input type="date" id="e-date" value="${esc(l.date || '')}"></label>
+        <label class="field"><span>Statut</span><select id="e-statut">${opt(e.statuts, l.statut || 'Estimé')}</select></label>
+      </div>
+      <div class="field"><span>Pour qui ?</span><div class="seg" id="e-pour">${PERSONNES.map((p) => p.nom).concat(NOUS).map((n) => `<button type="button" data-epour="${esc(n)}" aria-pressed="${n === (l.pour || NOUS)}">${esc(n)}<small>${n === NOUS ? '½ chacun' : 'perso'}</small></button>`).join('')}</div></div>
+      <label class="field"><span>Note (détail, source du prix…)</span><textarea id="e-note" maxlength="1000">${esc(l.note || '')}</textarea></label>
+      <div class="err-msg" id="e-err" role="alert"></div>
+      <div class="btns">${id && !res ? `<button type="button" class="btn danger" data-act="ed-del">Supprimer</button>` : ''}<button class="btn primary" type="submit">Enregistrer</button></div>`);
+    majLigneForm();
+  }
+  function lireLigneForm() {
+    const pour = ($('#e-pour [aria-pressed="true"]') || {}).dataset;
+    return {
+      pays: $('#e-pays').value, cat: $('#e-cat').value, poste: $('#e-poste').value.trim(), etape: $('#e-etape').value.trim(),
+      qte: parseNum($('#e-qte').value), prix: parseNum($('#e-prix').value), devise: $('#e-devise').value,
+      date: $('#e-date').value || '', statut: $('#e-statut').value, pour: pour ? pour.epour : NOUS, note: $('#e-note').value.trim(),
+    };
+  }
+  function majLigneForm() {
+    if (!edLigne) return;
+    const v = lireLigneForm(), e = etat();
+    const hotel = v.cat === HOTEL;
+    $('#e-etape-wrap').hidden = !hotel;
+    $('#e-qte-lbl').textContent = hotel ? 'Nuits' : 'Qté';
+    if (estReserve(edLigne)) { $('#e-impact').textContent = `= ${chf(edLigne.prevu)} (plafond − le reste)`; return; }
+    const nouveau = v.statut === OPTION ? 0 : ((v.qte || 0) * (v.prix || 0)) / (e.taux[v.devise] || 1);
+    const delta = nouveau - (edLigne.prevu || 0);
+    const { total, reserve } = resumeBudget(e);
+    const autres = total - reserve + delta; // toutes les lignes sauf la réserve, après le changement
+    let txt = `= <b>${chf(nouveau)}</b> prévus${edLigne.id && Math.abs(delta) >= 1 ? ` (${delta > 0 ? '+' : '−'}${nf0.format(Math.abs(Math.round(delta)))})` : ''}`;
+    if (e.plafond && Math.abs(delta) >= 1) {
+      txt += autres > e.plafond + 0.5 ? ` · <span class="bad">réserve à 0, le total dépasse le plafond de ${chf(autres - e.plafond)}</span>` : ` · réserve après : <b>${chf(e.plafond - autres)}</b>`;
+    }
+    $('#e-impact').innerHTML = txt;
+  }
+  function enregistrerLigne() {
+    const v = lireLigneForm(), l = edLigne;
+    const err = (m) => { $('#e-err').textContent = m; };
+    if (!v.poste) return err('Écris un poste (ex. « Hôtel Kyoto · 6 nuits »).');
+    if (v.cat === HOTEL && !v.etape) return err('Pour un hôtel, indique l’étape (la ville).');
+    if (!(v.qte >= 0) || !(v.prix >= 0)) return err('Quantité et prix : des nombres positifs (ex. 6 et 120).');
+    if (!l.id) {
+      pousser({ type: 'ligneAjout', ligne: Object.assign({ id: 'l-' + uid().replace(/[^\w-]/g, '').slice(0, 20) }, v) });
+      fermerEdSheet(); toast('✓ Ligne ajoutée');
+      return;
+    }
+    const champs = {};
+    for (const k of Object.keys(v)) if (String(v[k] ?? '') !== String(l[k] ?? '')) champs[k] = v[k];
+    if (estReserve(l)) ['pays', 'cat', 'qte', 'prix', 'devise'].forEach((k) => delete champs[k]);
+    if (Object.keys(champs).length) { pousser({ type: 'ligne', id: l.id, champs }); toast('✓ Ligne modifiée'); }
+    fermerEdSheet();
+  }
+
+  function ouvrirPays(nom) {
+    const e = etat();
+    const p = nom ? e.pays.find((x) => x.nom === nom) : { nom: '', debut: '', fin: '', dev: 'CHF', c: '#9A9ABF' };
+    if (!p) return;
+    edPays = Object.assign({ nouveau: !nom }, p);
+    const gen = p.nom === GENERAL;
+    const nLignes = e.lignes.filter((l) => l.pays === p.nom).length;
+    ouvrirEdSheet(`<h3>${nom ? esc(nom) : 'Nouveau pays'} <button type="button" class="icon-btn" data-act="ed-close" aria-label="Fermer">✕</button></h3>
+      <label class="field"><span>Nom</span><input type="text" id="p-nom" maxlength="40" value="${esc(p.nom)}" ${gen ? 'disabled' : ''} placeholder="ex. Laos"></label>
+      ${gen ? '' : `<div class="two">
+        <label class="field"><span>1re nuit</span><input type="date" id="p-debut" value="${esc(p.debut || '')}"></label>
+        <label class="field"><span>Dernière nuit</span><input type="date" id="p-fin" value="${esc(p.fin || '')}"></label>
+      </div><div class="impact" id="p-nuits"></div>`}
+      <div class="two">
+        <label class="field"><span>Devise</span><select id="p-dev">${Object.keys(e.taux).map((d) => `<option ${d === p.dev ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select></label>
+        <label class="field"><span>Couleur</span><input type="color" id="p-c" value="${esc(/^#[0-9a-f]{6}$/i.test(p.c) ? p.c : '#9A9ABF')}"></label>
+      </div>
+      ${nom && !gen ? `<p class="foot" style="margin:0 0 12px">${nLignes} ligne${nLignes > 1 ? 's' : ''} de budget · renommer met aussi à jour les lignes et les dépenses.</p>` : ''}
+      <div class="err-msg" id="p-err" role="alert"></div>
+      <div class="btns">${nom && !gen ? `<button type="button" class="btn danger" data-act="pays-del">Supprimer</button>` : ''}<button class="btn primary" type="submit">Enregistrer</button></div>`);
+    majPaysForm();
+  }
+  function majPaysForm() {
+    const d = $('#p-debut'), f = $('#p-fin');
+    if (!d || !f || !$('#p-nuits')) return;
+    $('#p-nuits').textContent = d.value && f.value && f.value >= d.value ? `${dayDiff(d.value, f.value) + 1} nuits` : 'Choisis la première et la dernière nuit.';
+  }
+  function enregistrerPays() {
+    const p = edPays, e = etat();
+    const err = (m) => { $('#p-err').textContent = m; };
+    const nom = $('#p-nom').value.trim(), dev = $('#p-dev').value, c = $('#p-c').value;
+    const debut = $('#p-debut') ? $('#p-debut').value : '', fin = $('#p-fin') ? $('#p-fin').value : '';
+    if (p.nom !== GENERAL) {
+      if (!nom) return err('Donne un nom au pays.');
+      if (!debut || !fin || fin < debut) return err('Choisis la première et la dernière nuit (dans l’ordre).');
+      if (nom !== p.nom && e.pays.some((x) => x.nom === nom)) return err('Ce nom existe déjà.');
+    }
+    if (p.nouveau) { pousser({ type: 'paysAjout', pays: { nom, debut, fin, devise: dev, couleur: c } }); fermerEdSheet(); toast('✓ Pays ajouté'); return; }
+    const champs = {};
+    if (p.nom !== GENERAL && nom !== p.nom) champs.nom = nom;
+    if (debut !== (p.debut || '')) champs.debut = debut;
+    if (fin !== (p.fin || '')) champs.fin = fin;
+    if (dev !== p.dev) champs.devise = dev;
+    if (c.toLowerCase() !== String(p.c).toLowerCase()) champs.couleur = c;
+    if (Object.keys(champs).length) {
+      if (p.nom !== GENERAL && !('debut' in champs) && !('fin' in champs)) { champs.debut = debut; champs.fin = fin; }
+      pousser({ type: 'pays', nom: p.nom, champs });
+      if (champs.nom && ui.edPays === p.nom) { ui.edPays = champs.nom; save(K.ui, ui); }
+      toast('✓ Pays modifié');
+    }
+    fermerEdSheet();
+  }
+
+  async function tauxDuJour() {
+    try {
+      const r = await fetch('https://open.er-api.com/v6/latest/CHF').then((x) => x.json());
+      if (!r || !r.rates) throw new Error();
+      document.querySelectorAll('[data-taux]').forEach((i) => {
+        const v = r.rates[i.dataset.taux];
+        if (v) i.value = v >= 100 ? Math.round(v * 10) / 10 : Math.round(v * 10000) / 10000;
+      });
+      toast('Taux du jour chargés : vérifie puis « Enregistrer ».');
+    } catch (e) { toast('Impossible de charger les taux (pas de réseau ?).'); }
+  }
+  function enregistrerTaux() {
+    const t = etat().taux, valeurs = {};
+    document.querySelectorAll('[data-taux]').forEach((i) => {
+      const v = parseNum(i.value);
+      if (v > 0 && Math.abs(v - t[i.dataset.taux]) > 1e-9) valeurs[i.dataset.taux] = v;
+    });
+    if (!Object.keys(valeurs).length) { toast('Aucun taux modifié.'); return; }
+    pousser({ type: 'taux', valeurs });
+    toast('✓ Taux enregistrés');
+  }
+  function enregistrerPlafond() {
+    const v = parseNum($('#pl-val').value);
+    if (!(v > 0)) { toast('Entre un plafond (ex. 30000).'); return; }
+    if (v === etat().plafond) { toast('Plafond inchangé.'); return; }
+    pousser({ type: 'reglages', plafond: Math.round(v) });
+    toast('✓ Plafond enregistré');
+  }
+
+  $('#ed-sheet').addEventListener('submit', (ev) => { ev.preventDefault(); if (edLigne) enregistrerLigne(); else if (edPays) enregistrerPays(); });
+  $('#ed-sheet').addEventListener('input', () => { if (edLigne) majLigneForm(); else majPaysForm(); });
+  $('#ed-sheet').addEventListener('change', () => { if (edLigne) majLigneForm(); else majPaysForm(); });
+  $('#ed-sheet').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-epour]');
+    if (b) { document.querySelectorAll('#e-pour [data-epour]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); return; }
+    const a = ev.target.closest('[data-act]');
+    if (!a) return;
+    if (a.dataset.act === 'ed-close') fermerEdSheet();
+    else if (a.dataset.act === 'ed-del' || a.dataset.act === 'pays-del') {
+      if (!edConfirm) { edConfirm = true; a.textContent = 'Confirmer'; return; }
+      if (a.dataset.act === 'ed-del') { pousser({ type: 'ligneSuppr', id: edLigne.id }); toast('Ligne supprimée.'); }
+      else {
+        if (etat().lignes.some((l) => l.pays === edPays.nom)) { $('#p-err').textContent = 'Supprime d’abord les lignes de budget de ce pays.'; return; }
+        pousser({ type: 'paysSuppr', nom: edPays.nom }); toast('Pays supprimé.');
+      }
+      fermerEdSheet();
+    }
+  });
+
   // ── Accueil / réglages ──
   function setupHtml() {
     return `<form class="setup" id="setup">
@@ -561,11 +885,13 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
         const ops = queue.slice();
         const res = await fetchJson(cfg.api, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ops }) });
         if (!res.ok) throw new Error(res.erreur || 'Le Google Sheet a refusé l’envoi.');
-        const key = (o) => o.type + ':' + (o.type === 'add' ? o.entry.id : o.id);
+        const key = (o) => (EDITS.includes(o.type) ? 'edit:' + o.oid : o.type + ':' + (o.type === 'add' ? o.entry.id : o.id));
         const done = new Set([
           ...(res.ajoutes || []).map((id) => 'add:' + id), ...(res.annules || []).map((id) => 'cancel:' + id), ...(res.payes || []).map((id) => 'pay:' + id),
           ...(res.ignores || []).filter(Boolean).flatMap((id) => ['add:' + id, 'cancel:' + id, 'pay:' + id]),
+          ...(res.edites || []).map((oid) => 'edit:' + oid),
         ]);
+        (res.erreurs || []).forEach((x) => toast('Modification refusée : ' + x.erreur));
         if ((res.ignores || []).length) toast('Une saisie invalide a été ignorée par le Google Sheet.');
         queue = queue.filter((o) => !done.has(key(o)));
         save(K.queue, queue);
@@ -599,7 +925,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   function openSheet() {
     const sel = ui.pays && ui.pays !== 'Tout' ? ui.pays : currentPays();
     const pays = sel === 'Tout' ? 'Général' : sel;
-    $('#f-pays').innerHTML = PAYS.map((p) => `<option ${p.nom === pays ? 'selected' : ''}>${esc(p.nom)}</option>`).join('');
+    $('#f-pays').innerHTML = paysL().map((p) => `<option ${p.nom === pays ? 'selected' : ''}>${esc(p.nom)}</option>`).join('');
     $('#f-devise').innerHTML = DEVISES.map((d) => `<option ${d === paysMeta(pays).dev ? 'selected' : ''}>${d}</option>`).join('');
     $('#f-date').value = today();
     $('#f-montant').value = ''; $('#f-libelle').value = ''; $('#f-err').textContent = ''; $('#f-resv').checked = false;
@@ -630,7 +956,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   }
   function fillEtapes() {
     const pays = $('#f-pays').value;
-    const hs = (snap ? snap.lignes : []).filter((l) => l.pays === pays && l.cat === HOTEL);
+    const hs = etat().lignes.filter((l) => l.pays === pays && l.cat === HOTEL);
     const cur = currentHotelEtape(pays);
     $('#f-etape').innerHTML = hs.length
       ? hs.map((l) => `<option value="${esc(l.etape)}" ${l.etape === cur ? 'selected' : ''}>${esc(l.etape)} · ${dateTxt(l.date)} · ${l.qte} nuit${l.qte > 1 ? 's' : ''}</option>`).join('')
@@ -671,7 +997,7 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
   $('#f-montant').addEventListener('input', conv);
   $('#f-devise').addEventListener('change', conv);
   $('#close-sheet').addEventListener('click', closeSheet);
-  $('#sheet-bg').addEventListener('click', closeSheet);
+  $('#sheet-bg').addEventListener('click', () => { closeSheet(); fermerEdSheet(); });
   $('#fab').addEventListener('click', openSheet);
 
   // ── Interactions de la page ──
@@ -701,11 +1027,26 @@ input:focus, select:focus { outline: 2px solid var(--ac); outline-offset: 1px; }
       render(); toast('✓ Hôtel marqué comme payé.'); sync();
       return;
     }
+    const t = ev.target.closest('[data-edtab]');
+    if (t) { ui.edTab = t.dataset.edtab; save(K.ui, ui); render(); return; }
+    const ep = ev.target.closest('[data-edpays]');
+    if (ep) { ui.edPays = ep.dataset.edpays; save(K.ui, ui); render(); return; }
+    const el = ev.target.closest('[data-edl]');
+    if (el) { ouvrirLigne(el.dataset.edl); return; }
+    const epy = ev.target.closest('[data-edp]');
+    if (epy) { ouvrirPays(epy.dataset.edp); return; }
     const a = ev.target.closest('[data-act]');
+    if (a && a.dataset.act === 'edit-close') { ui.edit = false; save(K.ui, ui); render(); return; }
+    if (a && a.dataset.act === 'ed-add') { ouvrirLigne(null); return; }
+    if (a && a.dataset.act === 'pays-add') { ouvrirPays(null); return; }
+    if (a && a.dataset.act === 'taux-jour') { tauxDuJour(); return; }
+    if (a && a.dataset.act === 'taux-save') { enregistrerTaux(); return; }
+    if (a && a.dataset.act === 'pl-save') { enregistrerPlafond(); return; }
     if (a && a.dataset.act === 'all') { ui.showAll = true; render(); return; }
     if (a && a.dataset.act === 'sync') { sync(); return; }
   });
   $('#sync').addEventListener('click', () => sync());
+  $('#open-edit').addEventListener('click', () => { if (!snap) return; ui.edit = !ui.edit; save(K.ui, ui); window.scrollTo(0, 0); render(); });
   $('#open-settings').addEventListener('click', () => { $('#fab').hidden = true; $('#app').innerHTML = setupHtml(); bindSetup(); });
 
   let toastT = 0;

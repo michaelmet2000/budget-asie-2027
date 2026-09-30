@@ -1,7 +1,7 @@
 // Budget Asie 2027 — fonctionnement hors connexion.
 // L'appli (page, icônes, polices) est gardée en cache et s'ouvre sans réseau ; les données passent par localStorage
 // et le Google Sheet (jamais mises en cache ici). Changer VERSION à chaque mise à jour de l'appli.
-const VERSION = 'ba27-v5';
+const VERSION = 'ba27-v6';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
